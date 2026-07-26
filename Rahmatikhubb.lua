@@ -1,11 +1,5 @@
 --[[
-    RAHMAT Menu v2 (исправленное и оптимизированное)
-    Вкладки: Инфо, Настройки, Анимации, Игрок
-    Сворачивание: кнопка X
-    Открытие: плавающая кнопка R (для Android) + RightShift
-    Fly с управлением WASD/Space/Shift (работает на Android через джойстик)
-    Анимации: предустановленные + загрузка по ID
-    Настройки скорости ходьбы, прыжка и полёта
+    RAHMAT Menu v3 (Fly через джойстик + вертикальные кнопки)
 ]]
 
 local Players = game:GetService("Players")
@@ -14,7 +8,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Оптимизация: кэшируем часто используемые объекты
+-- Кэширование
 local character, humanoid, rootPart
 local function updateCharacter()
     character = player.Character
@@ -28,14 +22,12 @@ local function updateCharacter()
 end
 player.CharacterAdded:Connect(function()
     updateCharacter()
-    -- Применяем сохранённые настройки при респавне
     wait(0.5)
     if humanoid then
         humanoid.WalkSpeed = savedWalkSpeed
         humanoid.JumpPower = savedJumpPower
     end
 end)
--- Инициализация
 updateCharacter()
 if humanoid then
     humanoid.WalkSpeed = 16
@@ -50,7 +42,7 @@ local flying = false
 local bodyVelocity, bodyGyro
 
 ------------------------------------------------------------
--- Создание GUI
+-- GUI
 ------------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RAHMAT_Menu"
@@ -60,26 +52,22 @@ screenGui.Parent = playerGui
 
 -- Главное меню
 local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 520, 0, 440)
 mainFrame.Position = UDim2.new(0.5, -260, 0.5, -220)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 34)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = true
 mainFrame.Parent = screenGui
-
 local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(0, 12)
 uiCorner.Parent = mainFrame
 
 -- Заголовок
 local titleBar = Instance.new("Frame")
-titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 44)
 titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
-
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 12)
 titleCorner.Parent = titleBar
@@ -155,7 +143,6 @@ tabBar.Size = UDim2.new(1, -20, 0, 36)
 tabBar.Position = UDim2.new(0, 10, 0, 54)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = mainFrame
-
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.FillDirection = Enum.FillDirection.Horizontal
 tabLayout.Padding = UDim.new(0, 6)
@@ -195,7 +182,6 @@ local contentCorner = Instance.new("UICorner")
 contentCorner.CornerRadius = UDim.new(0, 10)
 contentCorner.Parent = contentFrame
 
--- Страницы (все страницы создаём внутри contentFrame)
 local pages = {}
 
 -- Инфо
@@ -205,12 +191,11 @@ infoPage.BackgroundTransparency = 1
 infoPage.Visible = true
 infoPage.Parent = contentFrame
 pages.Info = infoPage
-
 local infoLabel = Instance.new("TextLabel")
 infoLabel.Size = UDim2.new(1, -20, 1, -20)
 infoLabel.Position = UDim2.new(0, 10, 0, 10)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "Добро пожаловать в RAHMAT!\n\nСвернуть: кнопка X\nОткрыть: R (Android) или RightShift"
+infoLabel.Text = "Добро пожаловать в RAHMAT!\n\nСвернуть: X\nОткрыть: R (Android) или RightShift"
 infoLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
 infoLabel.TextWrapped = true
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -226,7 +211,6 @@ settingsPage.BackgroundTransparency = 1
 settingsPage.Visible = false
 settingsPage.Parent = contentFrame
 pages.Settings = settingsPage
-
 local settingsLabel = Instance.new("TextLabel")
 settingsLabel.Size = UDim2.new(1, -20, 0, 30)
 settingsLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -237,7 +221,6 @@ settingsLabel.TextXAlignment = Enum.TextXAlignment.Left
 settingsLabel.Font = Enum.Font.GothamBold
 settingsLabel.TextSize = 18
 settingsLabel.Parent = settingsPage
-
 local exampleToggle = Instance.new("TextButton")
 exampleToggle.Size = UDim2.new(0, 200, 0, 34)
 exampleToggle.Position = UDim2.new(0, 10, 0, 50)
@@ -263,7 +246,6 @@ animsPage.BackgroundTransparency = 1
 animsPage.Visible = false
 animsPage.Parent = contentFrame
 pages.Animations = animsPage
-
 local animsLabel = Instance.new("TextLabel")
 animsLabel.Size = UDim2.new(1, -20, 0, 30)
 animsLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -275,13 +257,11 @@ animsLabel.Font = Enum.Font.GothamBold
 animsLabel.TextSize = 18
 animsLabel.Parent = animsPage
 
--- Контейнер для кнопок анимаций
 local animContainer = Instance.new("Frame")
 animContainer.Size = UDim2.new(1, -20, 0, 150)
 animContainer.Position = UDim2.new(0, 10, 0, 45)
 animContainer.BackgroundTransparency = 1
 animContainer.Parent = animsPage
-
 local animLayout = Instance.new("UIListLayout")
 animLayout.FillDirection = Enum.FillDirection.Horizontal
 animLayout.Wrap = true
@@ -290,7 +270,6 @@ animLayout.Spacing = UDim.new(0, 8)
 animLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 animLayout.Parent = animContainer
 
--- Список анимаций (ID + имя)
 local animList = {
     {id = "180393100", name = "Idle"},
     {id = "180393200", name = "Walk"},
@@ -342,10 +321,8 @@ local function createAnimButton(parent, animData)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = btn
-
     btn.MouseButton1Click:Connect(function()
         playAnimationById(animData.id)
-        -- Подсветка активной кнопки
         for _, child in parent:GetChildren() do
             if child:IsA("TextButton") then
                 child.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
@@ -360,7 +337,6 @@ for _, anim in ipairs(animList) do
     createAnimButton(animContainer, anim)
 end
 
--- Кнопка "Стоп"
 local stopBtn = Instance.new("TextButton")
 stopBtn.Size = UDim2.new(0, 100, 0, 36)
 stopBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
@@ -381,13 +357,11 @@ stopBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Поле для ввода ID
 local idFrame = Instance.new("Frame")
 idFrame.Size = UDim2.new(1, -20, 0, 36)
 idFrame.Position = UDim2.new(0, 10, 0, 205)
 idFrame.BackgroundTransparency = 1
 idFrame.Parent = animsPage
-
 local idLabel = Instance.new("TextLabel")
 idLabel.Size = UDim2.new(0, 100, 1, 0)
 idLabel.BackgroundTransparency = 1
@@ -397,7 +371,6 @@ idLabel.TextXAlignment = Enum.TextXAlignment.Left
 idLabel.Font = Enum.Font.Gotham
 idLabel.TextSize = 14
 idLabel.Parent = idFrame
-
 local idBox = Instance.new("TextBox")
 idBox.Size = UDim2.new(0, 150, 1, 0)
 idBox.Position = UDim2.new(0, 105, 0, 0)
@@ -412,7 +385,6 @@ idBox.Parent = idFrame
 local idCorner = Instance.new("UICorner")
 idCorner.CornerRadius = UDim.new(0, 6)
 idCorner.Parent = idBox
-
 local playIdBtn = Instance.new("TextButton")
 playIdBtn.Size = UDim2.new(0, 80, 1, 0)
 playIdBtn.Position = UDim2.new(1, -85, 0, 0)
@@ -429,7 +401,6 @@ playIdBtn.MouseButton1Click:Connect(function()
     local id = idBox.Text
     if id ~= "" then
         playAnimationById(id)
-        -- сброс подсветки кнопок
         for _, child in animContainer:GetChildren() do
             if child:IsA("TextButton") then
                 child.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
@@ -445,7 +416,6 @@ playerPage.BackgroundTransparency = 1
 playerPage.Visible = false
 playerPage.Parent = contentFrame
 pages.Player = playerPage
-
 local playerLabel = Instance.new("TextLabel")
 playerLabel.Size = UDim2.new(1, -20, 0, 30)
 playerLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -456,7 +426,6 @@ playerLabel.TextXAlignment = Enum.TextXAlignment.Left
 playerLabel.Font = Enum.Font.GothamBold
 playerLabel.TextSize = 18
 playerLabel.Parent = playerPage
-
 local playerInfo = Instance.new("TextLabel")
 playerInfo.Size = UDim2.new(1, -20, 0, 60)
 playerInfo.Position = UDim2.new(0, 10, 0, 45)
@@ -470,7 +439,6 @@ playerInfo.Font = Enum.Font.Gotham
 playerInfo.TextSize = 14
 playerInfo.Parent = playerPage
 
--- Fly toggle
 local flyBtn = Instance.new("TextButton")
 flyBtn.Size = UDim2.new(0, 200, 0, 36)
 flyBtn.Position = UDim2.new(0, 10, 0, 120)
@@ -490,7 +458,6 @@ speedPanel.Size = UDim2.new(1, -20, 0, 180)
 speedPanel.Position = UDim2.new(0, 10, 0, 170)
 speedPanel.BackgroundTransparency = 1
 speedPanel.Parent = playerPage
-
 local speedLayout = Instance.new("UIListLayout")
 speedLayout.FillDirection = Enum.FillDirection.Vertical
 speedLayout.Padding = UDim.new(0, 8)
@@ -502,7 +469,6 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     row.Size = UDim2.new(1, 0, 0, 30)
     row.BackgroundTransparency = 1
     row.Parent = parent
-
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(0, 140, 1, 0)
     lbl.BackgroundTransparency = 1
@@ -512,7 +478,6 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     lbl.Font = Enum.Font.Gotham
     lbl.TextSize = 14
     lbl.Parent = row
-
     local box = Instance.new("TextBox")
     box.Size = UDim2.new(0, 80, 1, 0)
     box.Position = UDim2.new(0, 145, 0, 0)
@@ -527,7 +492,6 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     local boxCorner = Instance.new("UICorner")
     boxCorner.CornerRadius = UDim.new(0, 6)
     boxCorner.Parent = box
-
     local applyBtn = Instance.new("TextButton")
     applyBtn.Size = UDim2.new(0, 70, 1, 0)
     applyBtn.Position = UDim2.new(1, -75, 0, 0)
@@ -540,7 +504,6 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 6)
     btnCorner.Parent = applyBtn
-
     applyBtn.MouseButton1Click:Connect(function()
         local val = tonumber(box.Text)
         if val then
@@ -551,27 +514,69 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
             box.Text = tostring(defaultVal)
         end
     end)
-
-    return row, box, applyBtn
+    return row
 end
 
 createSlider(speedPanel, "Скорость ходьбы:", 16, 0, 100, function(v)
     savedWalkSpeed = v
     if humanoid then humanoid.WalkSpeed = v end
 end)
-
 createSlider(speedPanel, "Сила прыжка:", 50, 0, 200, function(v)
     savedJumpPower = v
     if humanoid then humanoid.JumpPower = v end
 end)
-
 createSlider(speedPanel, "Скорость полёта:", 50, 1, 500, function(v)
     flySpeed = v
 end)
 
 ------------------------------------------------------------
--- Логика Fly
+-- Fly через джойстик
 ------------------------------------------------------------
+-- Вертикальные кнопки (Android)
+local verticalFrame = Instance.new("Frame")
+verticalFrame.Name = "FlyVertical"
+verticalFrame.Size = UDim2.new(0, 120, 0, 100)
+verticalFrame.Position = UDim2.new(0.5, 60, 1, -120) -- справа внизу
+verticalFrame.BackgroundTransparency = 1
+verticalFrame.Visible = false
+verticalFrame.Parent = screenGui
+
+local btnUp = Instance.new("TextButton")
+btnUp.Size = UDim2.new(0, 50, 0, 50)
+btnUp.Position = UDim2.new(0, 35, 0, 0)
+btnUp.BackgroundColor3 = Color3.fromRGB(80, 120, 220)
+btnUp.Text = "▲"
+btnUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnUp.Font = Enum.Font.GothamBold
+btnUp.TextSize = 28
+btnUp.Parent = verticalFrame
+local upCorner = Instance.new("UICorner")
+upCorner.CornerRadius = UDim.new(1, 0)
+upCorner.Parent = btnUp
+
+local btnDown = Instance.new("TextButton")
+btnDown.Size = UDim2.new(0, 50, 0, 50)
+btnDown.Position = UDim2.new(0, 35, 0, 50)
+btnDown.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
+btnDown.Text = "▼"
+btnDown.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnDown.Font = Enum.Font.GothamBold
+btnDown.TextSize = 28
+btnDown.Parent = verticalFrame
+local downCorner = Instance.new("UICorner")
+downCorner.CornerRadius = UDim.new(1, 0)
+downCorner.Parent = btnDown
+
+local flyUp = false
+local flyDown = false
+
+btnUp.MouseButton1Down:Connect(function() flyUp = true end)
+btnUp.MouseButton1Up:Connect(function() flyUp = false end)
+btnUp.MouseLeave:Connect(function() flyUp = false end)
+btnDown.MouseButton1Down:Connect(function() flyDown = true end)
+btnDown.MouseButton1Up:Connect(function() flyDown = false end)
+btnDown.MouseLeave:Connect(function() flyDown = false end)
+
 local function startFly()
     updateCharacter()
     if not rootPart then return end
@@ -585,12 +590,17 @@ local function startFly()
     bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     bodyGyro.P = 10000
     bodyGyro.Parent = rootPart
+
+    verticalFrame.Visible = true
 end
 
 local function stopFly()
     flying = false
     if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
     if bodyGyro then bodyGyro:Destroy(); bodyGyro = nil end
+    verticalFrame.Visible = false
+    flyUp = false
+    flyDown = false
 end
 
 flyBtn.MouseButton1Click:Connect(function()
@@ -605,7 +615,7 @@ flyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Обработка полёта (оптимизировано: один RenderStepped с проверкой)
+-- Обработка полёта (джойстик + вертикаль)
 RunService.RenderStepped:Connect(function()
     if not flying then return end
     updateCharacter()
@@ -613,18 +623,40 @@ RunService.RenderStepped:Connect(function()
     local camera = workspace.CurrentCamera
     if not camera then return end
 
+    -- Горизонталь от джойстика
     local moveDir = Vector3.new(0, 0, 0)
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += camera.CFrame.LookVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= camera.CFrame.LookVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= camera.CFrame.RightVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += camera.CFrame.RightVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0, 1, 0) end
+    if humanoid then
+        local joy = humanoid.MoveDirection
+        if joy.Magnitude > 0.1 then
+            local joyUnit = joy.Unit
+            local forward = camera.CFrame.LookVector
+            local right = camera.CFrame.RightVector
+            -- Проецируем направление джойстика на плоскость камеры
+            local fwd = joyUnit:Dot(forward)
+            local rgt = joyUnit:Dot(right)
+            moveDir = (forward * fwd + right * rgt)
+            if moveDir.Magnitude > 0.1 then
+                moveDir = moveDir.Unit
+            else
+                moveDir = Vector3.new(0, 0, 0)
+            end
+        end
+    end
 
-    if moveDir.Magnitude > 0 then
-        moveDir = moveDir.Unit
-        bodyVelocity.Velocity = moveDir * flySpeed
-        bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + camera.CFrame.LookVector)
+    -- Вертикаль (кнопки + клавиши Space/Shift)
+    local vert = 0
+    if flyUp or UserInputService:IsKeyDown(Enum.KeyCode.Space) then vert = 1 end
+    if flyDown or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then vert = -1 end
+
+    local finalDir = moveDir * flySpeed + Vector3.new(0, vert * flySpeed, 0)
+    if finalDir.Magnitude > 0 then
+        bodyVelocity.Velocity = finalDir
+        -- Ориентация по направлению движения
+        if moveDir.Magnitude > 0.1 then
+            bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + moveDir)
+        else
+            bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + camera.CFrame.LookVector)
+        end
     else
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
     end
@@ -649,7 +681,6 @@ local function selectTab(tabName)
     for name, page in pairs(pages) do
         page.Visible = (name == tabName)
     end
-    -- Цвета кнопок
     local buttons = {Info=infoTab, Settings=settingsTab, Animations=animsTab, Player=playerTab}
     for name, btn in pairs(buttons) do
         btn.BackgroundColor3 = (name == tabName) and activeColor or inactiveColor
@@ -661,5 +692,4 @@ settingsTab.MouseButton1Click:Connect(function() selectTab("Settings") end)
 animsTab.MouseButton1Click:Connect(function() selectTab("Animations") end)
 playerTab.MouseButton1Click:Connect(function() selectTab("Player") end)
 
--- По умолчанию открываем Инфо
 selectTab("Info")
