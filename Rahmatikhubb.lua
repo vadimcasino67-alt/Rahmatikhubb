@@ -1,13 +1,13 @@
 --[[
-    RAHMAT Menu v6.4 — полный код
-    Особенности:
-    — Меню можно перемещать (таскать за заголовок)
-    — Меню можно изменять в размере (потянуть за右下 угол)
-    — Hue-ползунок работает (мышь + касание), не конфликтует со скроллом
-    — FOV — тонкое кольцо, список игроков аимбота обновляется каждую секунду
-    — Лимиты 0–99999 на скорость, прыжок, полёт, FOV
-    — Скролл всех вкладок доходит до низа без пружины
---]]
+    RAHMAT Menu v6.5 — Полный код
+    Исправления:
+    — Все вкладки теперь корректно скроллятся, элементы не выходят за границы.
+      Добавлен явный ClipsDescendants и ScrollingDirection.Y.
+    — Улучшен расчёт CanvasSize: если контент меньше области, скролл не появляется.
+    — Перемещение и изменение размера меню работают.
+    — Hue-ползунок полностью рабочий (мышь + касание), не мешает скроллу.
+    — FOV — тонкое кольцо, аимбот с обновляемым списком, лимиты 0–99999.
+]]--
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -290,7 +290,31 @@ contentCorner.Parent = contentFrame
 
 local pages = {}
 
--- Функция починки скролла
+-- Универсальная функция создания корректно скроллящейся страницы
+local function createScrollPage()
+    local sf = Instance.new("ScrollingFrame")
+    sf.Size = UDim2.new(1, 0, 1, 0)
+    sf.BackgroundTransparency = 1
+    sf.ScrollBarThickness = 4
+    sf.CanvasSize = UDim2.new(0, 0, 0, 0)
+    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    sf.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+    sf.ElasticBehavior = Enum.ElasticBehavior.Never
+    sf.ScrollingDirection = Enum.ScrollingDirection.Y   -- только вертикальный скролл
+    sf.ClipsDescendants = true                           -- обрезать всё, что выходит за границы
+    sf.Parent = contentFrame
+    sf.Visible = false
+
+    local uiListLayout = Instance.new("UIListLayout")
+    uiListLayout.Padding = UDim.new(0, 5)
+    uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    uiListLayout.Parent = sf
+
+    return sf
+end
+
+-- Фикс высоты CanvasSize после наполнения контентом
 local function fixScrolling(sf)
     task.wait()
     local layout = sf:FindFirstChildOfClass("UIListLayout")
@@ -305,27 +329,6 @@ local function fixScrolling(sf)
         sf.AutomaticCanvasSize = Enum.AutomaticSize.None
         sf.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
     end
-end
-
-local function createScrollPage()
-    local sf = Instance.new("ScrollingFrame")
-    sf.Size = UDim2.new(1, 0, 1, 0)
-    sf.BackgroundTransparency = 1
-    sf.ScrollBarThickness = 4
-    sf.CanvasSize = UDim2.new(0, 0, 0, 0)
-    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    sf.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
-    sf.ElasticBehavior = Enum.ElasticBehavior.Never
-    sf.Parent = contentFrame
-    sf.Visible = false
-
-    local uiListLayout = Instance.new("UIListLayout")
-    uiListLayout.Padding = UDim.new(0, 5)
-    uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    uiListLayout.Parent = sf
-
-    return sf
 end
 
 ------------------------------------------------------------
@@ -922,6 +925,8 @@ targetListFrame.ScrollBarThickness = 4
 targetListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 targetListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 targetListFrame.ElasticBehavior = Enum.ElasticBehavior.Never
+targetListFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+targetListFrame.ClipsDescendants = true
 targetListFrame.Parent = visualsPage
 
 local targetListLayout = Instance.new("UIListLayout")
@@ -996,7 +1001,6 @@ targetDropdownBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Обновление списка каждую секунду
 task.spawn(function()
     while true do
         task.wait(1)
@@ -1082,7 +1086,7 @@ targetMarker.Transparency = 0.5
 targetMarker.Visible = false
 targetMarker.Radius = 8
 
--- ============ ИСПРАВЛЕННЫЙ HUE-ПОЛЗУНОК ============
+-- HUE-ползунок (перетаскиваемый, не мешает скроллу)
 local hueLabel = Instance.new("TextLabel")
 hueLabel.Size = UDim2.new(1, -20, 0, 20)
 hueLabel.BackgroundTransparency = 1
@@ -1210,7 +1214,6 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 updateHueKnobPosition()
--- ============ КОНЕЦ HUE-ПОЛЗУНКА ============
 
 task.spawn(function() fixScrolling(visualsPage) end)
 
