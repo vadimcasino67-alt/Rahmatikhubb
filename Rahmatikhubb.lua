@@ -1,6 +1,7 @@
 --[[
-    RAHMAT Menu v4 (Починены хитбоксы, возвращён ввод ID анимаций,
-    добавлены Noclip и Аимбот)
+    RAHMAT Menu v5
+    Исправлены хитбоксы (центрированы по HRP), добавлен скроллинг на заполненных вкладках,
+    Noclip работает надёжно (Stepped), добавлен выбор цвета меню.
 ]]
 
 local Players = game:GetService("Players")
@@ -30,7 +31,7 @@ player.CharacterAdded:Connect(function()
         humanoid.JumpPower = savedJumpPower
     end
     if noclipEnabled then
-        enableNoClip() -- переприменить после респавна
+        enableNoClip() -- переподключить после респавна
     end
 end)
 
@@ -191,7 +192,7 @@ local playerTab = createTabButton("PlayerTab", "Игрок")
 local visualsTab = createTabButton("VisualsTab", "Визуалы")
 
 ------------------------------------------------------------
--- Контент
+-- Контент (Frame-обёртка, внутри каждой страницы будет ScrollingFrame при необходимости)
 ------------------------------------------------------------
 local contentFrame = Instance.new("Frame")
 contentFrame.Size = UDim2.new(1, -20, 1, -104)
@@ -206,7 +207,28 @@ contentCorner.Parent = contentFrame
 
 local pages = {}
 
--- Инфо
+-- Вспомогательная функция создания ScrollingFrame для вкладки
+local function createScrollPage()
+    local sf = Instance.new("ScrollingFrame")
+    sf.Size = UDim2.new(1, 0, 1, 0)
+    sf.BackgroundTransparency = 1
+    sf.ScrollBarThickness = 4
+    sf.CanvasSize = UDim2.new(0, 0, 0, 0)
+    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    sf.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+    sf.Parent = contentFrame
+    sf.Visible = false
+
+    local uiListLayout = Instance.new("UIListLayout")
+    uiListLayout.Padding = UDim.new(0, 5)
+    uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    uiListLayout.Parent = sf
+
+    return sf
+end
+
+-- Инфо (обычный Frame, контент маленький)
 local infoPage = Instance.new("Frame")
 infoPage.Size = UDim2.new(1, 0, 1, 0)
 infoPage.BackgroundTransparency = 1
@@ -227,7 +249,7 @@ infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 15
 infoLabel.Parent = infoPage
 
--- Настройки
+-- Настройки (тоже Frame)
 local settingsPage = Instance.new("Frame")
 settingsPage.Size = UDim2.new(1, 0, 1, 0)
 settingsPage.BackgroundTransparency = 1
@@ -266,17 +288,13 @@ exampleToggle.MouseButton1Click:Connect(function()
     exampleToggle.Text = "Опция: " .. (toggleState and "Вкл" or "Выкл")
 end)
 
--- Анимации
-local animsPage = Instance.new("Frame")
-animsPage.Size = UDim2.new(1, 0, 1, 0)
-animsPage.BackgroundTransparency = 1
+-- Анимации (ScrollingFrame)
+local animsPage = createScrollPage()
 animsPage.Visible = false
-animsPage.Parent = contentFrame
 pages.Animations = animsPage
 
 local animsLabel = Instance.new("TextLabel")
 animsLabel.Size = UDim2.new(1, -20, 0, 30)
-animsLabel.Position = UDim2.new(0, 10, 0, 10)
 animsLabel.BackgroundTransparency = 1
 animsLabel.Text = "Анимации"
 animsLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
@@ -287,7 +305,6 @@ animsLabel.Parent = animsPage
 
 local animContainer = Instance.new("Frame")
 animContainer.Size = UDim2.new(1, -20, 0, 180)
-animContainer.Position = UDim2.new(0, 10, 0, 45)
 animContainer.BackgroundTransparency = 1
 animContainer.Parent = animsPage
 
@@ -391,10 +408,9 @@ stopBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ВОЗВРАЩЁН ВВОД ID АНИМАЦИЙ
+-- Ввод ID анимации
 local idFrame = Instance.new("Frame")
 idFrame.Size = UDim2.new(1, -20, 0, 36)
-idFrame.Position = UDim2.new(0, 10, 0, 230)
 idFrame.BackgroundTransparency = 1
 idFrame.Parent = animsPage
 
@@ -450,17 +466,13 @@ playIdBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Игрок
-local playerPage = Instance.new("Frame")
-playerPage.Size = UDim2.new(1, 0, 1, 0)
-playerPage.BackgroundTransparency = 1
+-- Игрок (ScrollingFrame)
+local playerPage = createScrollPage()
 playerPage.Visible = false
-playerPage.Parent = contentFrame
 pages.Player = playerPage
 
 local playerLabel = Instance.new("TextLabel")
 playerLabel.Size = UDim2.new(1, -20, 0, 30)
-playerLabel.Position = UDim2.new(0, 10, 0, 10)
 playerLabel.BackgroundTransparency = 1
 playerLabel.Text = "Игрок"
 playerLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
@@ -471,7 +483,6 @@ playerLabel.Parent = playerPage
 
 local playerInfo = Instance.new("TextLabel")
 playerInfo.Size = UDim2.new(1, -20, 0, 60)
-playerInfo.Position = UDim2.new(0, 10, 0, 45)
 playerInfo.BackgroundTransparency = 1
 playerInfo.Text = "Имя: " .. player.Name .. "\nDisplayName: " .. player.DisplayName
 playerInfo.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -484,7 +495,6 @@ playerInfo.Parent = playerPage
 
 local flyBtn = Instance.new("TextButton")
 flyBtn.Size = UDim2.new(0, 200, 0, 36)
-flyBtn.Position = UDim2.new(0, 10, 0, 120)
 flyBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
 flyBtn.Text = "Fly: Выкл"
 flyBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
@@ -496,11 +506,35 @@ local flyCorner = Instance.new("UICorner")
 flyCorner.CornerRadius = UDim.new(0, 8)
 flyCorner.Parent = flyBtn
 
--- NOCLIP
+-- NOCLIP (исправлен)
 local noclipEnabled = false
+local noclipConnection = nil
+
+local function enableNoClip()
+    if noclipConnection then noclipConnection:Disconnect() end
+    noclipConnection = RunService.Stepped:Connect(function()
+        if not noclipEnabled then return end
+        updateCharacter()
+        if character then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function disableNoClip()
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+    -- Восстанавливать коллизию не обязательно, при респавне всё равно сбросится
+end
+
 local noclipBtn = Instance.new("TextButton")
 noclipBtn.Size = UDim2.new(0, 200, 0, 36)
-noclipBtn.Position = UDim2.new(0, 10, 0, 166)
 noclipBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
 noclipBtn.Text = "Noclip: Выкл"
 noclipBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
@@ -511,26 +545,6 @@ noclipBtn.Parent = playerPage
 local noclipCorner = Instance.new("UICorner")
 noclipCorner.CornerRadius = UDim.new(0, 8)
 noclipCorner.Parent = noclipBtn
-
-local function enableNoClip()
-    updateCharacter()
-    if not character then return end
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
-    end
-end
-
-local function disableNoClip()
-    updateCharacter()
-    if not character then return end
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-        end
-    end
-end
 
 noclipBtn.MouseButton1Click:Connect(function()
     noclipEnabled = not noclipEnabled
@@ -545,10 +559,9 @@ noclipBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Настройки скорости
+-- Слайдеры скорости и прыжка
 local speedPanel = Instance.new("Frame")
 speedPanel.Size = UDim2.new(1, -20, 0, 180)
-speedPanel.Position = UDim2.new(0, 10, 0, 212) -- сдвинуто вниз из-за noclip
 speedPanel.BackgroundTransparency = 1
 speedPanel.Parent = playerPage
 
@@ -709,18 +722,14 @@ player.CharacterAdded:Connect(function()
 end)
 
 ------------------------------------------------------------
--- Визуалы (ESP ников, хитбоксов, Аимбот)
+-- Визуалы (ScrollingFrame)
 ------------------------------------------------------------
-local visualsPage = Instance.new("Frame")
-visualsPage.Size = UDim2.new(1, 0, 1, 0)
-visualsPage.BackgroundTransparency = 1
+local visualsPage = createScrollPage()
 visualsPage.Visible = false
-visualsPage.Parent = contentFrame
 pages.Visuals = visualsPage
 
 local visualsLabel = Instance.new("TextLabel")
 visualsLabel.Size = UDim2.new(1, -20, 0, 30)
-visualsLabel.Position = UDim2.new(0, 10, 0, 10)
 visualsLabel.BackgroundTransparency = 1
 visualsLabel.Text = "Визуалы"
 visualsLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
@@ -731,7 +740,6 @@ visualsLabel.Parent = visualsPage
 
 local namesToggle = Instance.new("TextButton")
 namesToggle.Size = UDim2.new(0, 200, 0, 34)
-namesToggle.Position = UDim2.new(0, 10, 0, 50)
 namesToggle.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
 namesToggle.Text = "Ники: Выкл"
 namesToggle.TextColor3 = Color3.fromRGB(230, 230, 230)
@@ -745,7 +753,6 @@ namesCorner.Parent = namesToggle
 
 local boxesToggle = Instance.new("TextButton")
 boxesToggle.Size = UDim2.new(0, 200, 0, 34)
-boxesToggle.Position = UDim2.new(0, 10, 0, 94)
 boxesToggle.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
 boxesToggle.Text = "Хитбоксы: Выкл"
 boxesToggle.TextColor3 = Color3.fromRGB(230, 230, 230)
@@ -761,7 +768,6 @@ boxesCorner.Parent = boxesToggle
 local aimbotEnabled = false
 local aimbotBtn = Instance.new("TextButton")
 aimbotBtn.Size = UDim2.new(0, 200, 0, 34)
-aimbotBtn.Position = UDim2.new(0, 10, 0, 138)
 aimbotBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
 aimbotBtn.Text = "Аимбот: Выкл"
 aimbotBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
@@ -773,9 +779,77 @@ local aimbotCorner = Instance.new("UICorner")
 aimbotCorner.CornerRadius = UDim.new(0, 8)
 aimbotCorner.Parent = aimbotBtn
 
+-- Цвет меню
+local colorLabel = Instance.new("TextLabel")
+colorLabel.Size = UDim2.new(1, -20, 0, 30)
+colorLabel.BackgroundTransparency = 1
+colorLabel.Text = "Цвет меню (R,G,B)"
+colorLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+colorLabel.TextXAlignment = Enum.TextXAlignment.Left
+colorLabel.Font = Enum.Font.GothamBold
+colorLabel.TextSize = 16
+colorLabel.Parent = visualsPage
+
+local rBox = Instance.new("TextBox")
+rBox.Size = UDim2.new(0, 60, 0, 30)
+rBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+rBox.Text = "30"
+rBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+rBox.Font = Enum.Font.Gotham
+rBox.TextSize = 14
+rBox.PlaceholderText = "R"
+rBox.Parent = visualsPage
+
+local gBox = Instance.new("TextBox")
+gBox.Size = UDim2.new(0, 60, 0, 30)
+gBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+gBox.Text = "30"
+gBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+gBox.Font = Enum.Font.Gotham
+gBox.TextSize = 14
+gBox.PlaceholderText = "G"
+gBox.Parent = visualsPage
+
+local bBox = Instance.new("TextBox")
+bBox.Size = UDim2.new(0, 60, 0, 30)
+bBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+bBox.Text = "34"
+bBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+bBox.Font = Enum.Font.Gotham
+bBox.TextSize = 14
+bBox.PlaceholderText = "B"
+bBox.Parent = visualsPage
+
+local applyColorBtn = Instance.new("TextButton")
+applyColorBtn.Size = UDim2.new(0, 200, 0, 34)
+applyColorBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
+applyColorBtn.Text = "Применить цвет меню"
+applyColorBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+applyColorBtn.Font = Enum.Font.Gotham
+applyColorBtn.TextSize = 14
+applyColorBtn.Parent = visualsPage
+
+local applyColorCorner = Instance.new("UICorner")
+applyColorCorner.CornerRadius = UDim.new(0, 8)
+applyColorCorner.Parent = applyColorBtn
+
+applyColorBtn.MouseButton1Click:Connect(function()
+    local r = tonumber(rBox.Text) or 30
+    local g = tonumber(gBox.Text) or 30
+    local b = tonumber(bBox.Text) or 34
+    r = math.clamp(r, 0, 255)
+    g = math.clamp(g, 0, 255)
+    b = math.clamp(b, 0, 255)
+    local color = Color3.fromRGB(r, g, b)
+    mainFrame.BackgroundColor3 = color
+    titleBar.BackgroundColor3 = Color3.fromRGB(r*0.7, g*0.7, b*0.7)
+    contentFrame.BackgroundColor3 = Color3.fromRGB(r*1.1, g*1.1, b*1.1)
+end)
+
+-- ESP объекты
 local espEnabledNames = false
 local espEnabledBoxes = false
-local espObjects = {} -- [player] = {nameTag, lines}
+local espObjects = {}
 
 local function clearESP(target)
     local data = espObjects[target]
@@ -811,10 +885,9 @@ local function createESPForPlayer(target)
     end
 
     if espEnabledBoxes then
-        local colors = {Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0)}
-        for i = 1, 12 do -- хитбокс из 12 линий (куб)
+        for i = 1, 12 do
             local line = Drawing.new("Line")
-            line.Color = colors[1]
+            line.Color = Color3.fromRGB(255, 0, 0)
             line.Thickness = 2
             line.Visible = false
             table.insert(data.lines, line)
@@ -838,7 +911,7 @@ local function updateESP()
 
         local visible = hrp and head and human and human.Health > 0
 
-        -- Обновление ника
+        -- Ник
         if data.nameTag then
             if visible then
                 local headPos = head.Position + Vector3.new(0, 0.5, 0)
@@ -853,21 +926,21 @@ local function updateESP()
             end
         end
 
-        -- Обновление хитбокса (12 линий для куба)
+        -- Хитбокс (симметричный вокруг HRP)
         if #data.lines > 0 then
             if visible then
-                local cframe = hrp.CFrame
                 local extents = char:GetExtentsSize()
                 local half = extents / 2
+                local cf = hrp.CFrame
                 local corners = {
-                    cframe * Vector3.new(-half.X, extents.Y, -half.Z),  -- top-left-front
-                    cframe * Vector3.new(half.X, extents.Y, -half.Z),   -- top-right-front
-                    cframe * Vector3.new(half.X, extents.Y, half.Z),    -- top-right-back
-                    cframe * Vector3.new(-half.X, extents.Y, half.Z),   -- top-left-back
-                    cframe * Vector3.new(-half.X, 0, -half.Z),          -- bottom-left-front
-                    cframe * Vector3.new(half.X, 0, -half.Z),           -- bottom-right-front
-                    cframe * Vector3.new(half.X, 0, half.Z),            -- bottom-right-back
-                    cframe * Vector3.new(-half.X, 0, half.Z)            -- bottom-left-back
+                    cf * Vector3.new(-half.X, half.Y, -half.Z),
+                    cf * Vector3.new(half.X, half.Y, -half.Z),
+                    cf * Vector3.new(half.X, half.Y, half.Z),
+                    cf * Vector3.new(-half.X, half.Y, half.Z),
+                    cf * Vector3.new(-half.X, -half.Y, -half.Z),
+                    cf * Vector3.new(half.X, -half.Y, -half.Z),
+                    cf * Vector3.new(half.X, -half.Y, half.Z),
+                    cf * Vector3.new(-half.X, -half.Y, half.Z)
                 }
                 local screenCorners = {}
                 local allOnScreen = true
@@ -881,7 +954,6 @@ local function updateESP()
                 end
 
                 if allOnScreen and #screenCorners == 8 then
-                    -- 12 рёбер куба
                     local edges = {
                         {1,2}, {2,3}, {3,4}, {4,1}, -- верхняя грань
                         {5,6}, {6,7}, {7,8}, {8,5}, -- нижняя грань
@@ -906,17 +978,15 @@ local function updateESP()
     end
 end
 
--- Аимбот: поиск ближайшего игрока и поворот камеры
+-- Аимбот
 local function getClosestPlayer()
     local camera = workspace.CurrentCamera
     if not camera then return nil end
     local closest = nil
-    local shortestDist = 200  -- максимальная дистанция аимбота
-    local mousePos = UserInputService:GetMouseLocation()
+    local shortestDist = 200
     local screenCenter = camera.ViewportSize / 2
     local ray = camera:ScreenPointToRay(screenCenter.X, screenCenter.Y)
     local cameraPos = ray.Origin
-    local cameraDir = ray.Direction
 
     for _, target in ipairs(Players:GetPlayers()) do
         if target ~= player then
@@ -925,11 +995,10 @@ local function getClosestPlayer()
             if head and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
                 local dist = (head.Position - cameraPos).Magnitude
                 if dist < shortestDist then
-                    -- проверка угла от центра экрана
                     local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
                     if onScreen then
                         local delta = Vector2.new(screenPos.X - screenCenter.X, screenPos.Y - screenCenter.Y)
-                        if delta.Magnitude < 400 then -- в радиусе аимбота
+                        if delta.Magnitude < 400 then
                             shortestDist = dist
                             closest = target
                         end
@@ -948,12 +1017,11 @@ local function updateAimbot()
     local target = getClosestPlayer()
     if target and target.Character and target.Character:FindFirstChild("Head") then
         local head = target.Character.Head
-        local lookAt = head.Position
-        camera.CFrame = CFrame.new(camera.CFrame.Position, lookAt)
+        camera.CFrame = CFrame.new(camera.CFrame.Position, head.Position)
     end
 end
 
--- Общий рендер
+-- Рендер
 RunService.RenderStepped:Connect(function()
     if espEnabledNames or espEnabledBoxes then
         updateESP()
@@ -963,7 +1031,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Управление переключателями
+-- Управление ESP
 local function refreshESP()
     clearAllESP()
     if espEnabledNames or espEnabledBoxes then
