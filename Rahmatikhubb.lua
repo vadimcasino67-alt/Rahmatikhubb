@@ -1,7 +1,9 @@
 --[[
-    RAHMAT Menu v6.5 — Полный код
+    RAHMAT Menu v6.5 — Полный код (адаптивные вкладки)
     Исправления:
-    — Все вкладки теперь корректно скроллятся, элементы не выходят за границы.
+    — Вкладки теперь динамически меняют ширину при изменении размеров меню.
+      Минимальная ширина кнопки — 60 px.
+    — Все вкладки корректно скроллятся, элементы не выходят за границы.
       Добавлен явный ClipsDescendants и ScrollingDirection.Y.
     — Улучшен расчёт CanvasSize: если контент меньше области, скролл не появляется.
     — Перемещение и изменение размера меню работают.
@@ -274,6 +276,25 @@ local animsTab = createTabButton("AnimationsTab", "Анимки")
 local playerTab = createTabButton("PlayerTab", "Игрок")
 local visualsTab = createTabButton("VisualsTab", "Визуалы")
 
+-- Адаптивность вкладок
+local tabButtons = {infoTab, settingsTab, animsTab, playerTab, visualsTab}
+local tabPadding = 6
+
+local function resizeTabs()
+    local totalWidth = mainFrame.AbsoluteSize.X - 20
+    if totalWidth <= 0 then return end
+    local numTabs = #tabButtons
+    local totalPadding = (numTabs - 1) * tabPadding
+    local availableWidth = totalWidth - totalPadding
+    local tabWidth = math.max(60, availableWidth / numTabs)
+    for _, btn in ipairs(tabButtons) do
+        btn.Size = UDim2.new(0, tabWidth, 1, 0)
+    end
+end
+
+mainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeTabs)
+resizeTabs()
+
 ------------------------------------------------------------
 -- Контент
 ------------------------------------------------------------
@@ -300,8 +321,8 @@ local function createScrollPage()
     sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
     sf.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
     sf.ElasticBehavior = Enum.ElasticBehavior.Never
-    sf.ScrollingDirection = Enum.ScrollingDirection.Y   -- только вертикальный скролл
-    sf.ClipsDescendants = true                           -- обрезать всё, что выходит за границы
+    sf.ScrollingDirection = Enum.ScrollingDirection.Y
+    sf.ClipsDescendants = true
     sf.Parent = contentFrame
     sf.Visible = false
 
@@ -314,7 +335,6 @@ local function createScrollPage()
     return sf
 end
 
--- Фикс высоты CanvasSize после наполнения контентом
 local function fixScrolling(sf)
     task.wait()
     local layout = sf:FindFirstChildOfClass("UIListLayout")
