@@ -1,11 +1,12 @@
 --[[
-    RAHMAT Menu v6.3
-    — Исправлен Hue-ползунок: работает на ПК (мышь) и на телефоне (касание),
-      не конфликтует со скроллом страницы.
-    — Все лимиты сняты (0–99999).
-    — Скролл меню доходит до низа (жёсткая фиксация канваса).
-    — Список игроков аимбота обновляется раз в секунду, когда открыт.
-    — FOV — тонкое кольцо (контур).
+    RAHMAT Menu v6.4 — полный код
+    Особенности:
+    — Меню можно перемещать (таскать за заголовок)
+    — Меню можно изменять в размере (потянуть за右下 угол)
+    — Hue-ползунок работает (мышь + касание), не конфликтует со скроллом
+    — FOV — тонкое кольцо, список игроков аимбота обновляется каждую секунду
+    — Лимиты 0–99999 на скорость, прыжок, полёт, FOV
+    — Скролл всех вкладок доходит до низа без пружины
 --]]
 
 local Players = game:GetService("Players")
@@ -158,6 +159,84 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 ------------------------------------------------------------
+-- ПЕРЕМЕЩЕНИЕ МЕНЮ (drag за заголовок)
+------------------------------------------------------------
+local dragging = false
+local dragStartPos = nil
+local frameStartPos = nil
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStartPos = UserInputService:GetMouseLocation()
+        frameStartPos = mainFrame.Position
+    end
+end)
+
+titleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local currentPos = UserInputService:GetMouseLocation()
+        local delta = currentPos - dragStartPos
+        local newPos = UDim2.new(
+            frameStartPos.X.Scale, frameStartPos.X.Offset + delta.X,
+            frameStartPos.Y.Scale, frameStartPos.Y.Offset + delta.Y
+        )
+        mainFrame.Position = newPos
+    end
+end)
+
+------------------------------------------------------------
+-- ИЗМЕНЕНИЕ РАЗМЕРА (drag за右下 угол)
+------------------------------------------------------------
+local resizeHandle = Instance.new("TextButton")
+resizeHandle.Size = UDim2.new(0, 20, 0, 20)
+resizeHandle.Position = UDim2.new(1, -20, 1, -20)
+resizeHandle.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+resizeHandle.Text = "◣"
+resizeHandle.TextColor3 = Color3.fromRGB(30, 30, 34)
+resizeHandle.Font = Enum.Font.GothamBold
+resizeHandle.TextSize = 14
+resizeHandle.AutoButtonColor = false
+resizeHandle.Parent = mainFrame
+local resizeCorner = Instance.new("UICorner")
+resizeCorner.CornerRadius = UDim.new(0, 6)
+resizeCorner.Parent = resizeHandle
+
+local resizing = false
+local resizeStartPos = nil
+local resizeStartSize = nil
+
+resizeHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        resizing = true
+        resizeStartPos = UserInputService:GetMouseLocation()
+        resizeStartSize = mainFrame.Size
+    end
+end)
+
+resizeHandle.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        resizing = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local currentPos = UserInputService:GetMouseLocation()
+        local delta = currentPos - resizeStartPos
+        local newWidth = math.max(300, resizeStartSize.X.Offset + delta.X)
+        local newHeight = math.max(300, resizeStartSize.Y.Offset + delta.Y)
+        mainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+    end
+end)
+
+------------------------------------------------------------
 -- Панель вкладок
 ------------------------------------------------------------
 local tabBar = Instance.new("Frame")
@@ -211,9 +290,9 @@ contentCorner.Parent = contentFrame
 
 local pages = {}
 
--- Функция починки скролла (вызывается после добавления элементов)
+-- Функция починки скролла
 local function fixScrolling(sf)
-    task.wait() -- ждём кадр, чтобы размеры посчитались
+    task.wait()
     local layout = sf:FindFirstChildOfClass("UIListLayout")
     local padding = layout and layout.Padding.Offset or 0
     local totalHeight = 0
@@ -228,7 +307,6 @@ local function fixScrolling(sf)
     end
 end
 
--- Функция создания ScrollingFrame (скролл починим отдельно)
 local function createScrollPage()
     local sf = Instance.new("ScrollingFrame")
     sf.Size = UDim2.new(1, 0, 1, 0)
@@ -237,7 +315,7 @@ local function createScrollPage()
     sf.CanvasSize = UDim2.new(0, 0, 0, 0)
     sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
     sf.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
-    sf.ElasticBehavior = Enum.ElasticBehavior.Never -- без пружины
+    sf.ElasticBehavior = Enum.ElasticBehavior.Never
     sf.Parent = contentFrame
     sf.Visible = false
 
@@ -585,7 +663,7 @@ noclipBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Слайдеры (лимиты расширены до 0–99999)
+-- Слайдеры
 local speedPanel = Instance.new("Frame")
 speedPanel.Size = UDim2.new(1, -20, 0, 180)
 speedPanel.BackgroundTransparency = 1
@@ -750,7 +828,7 @@ player.CharacterAdded:Connect(function()
 end)
 
 ------------------------------------------------------------
--- Вкладка "Визуалы" + Аимбот (FOV-кольцо, Hue-ползунок, обновляемый список)
+-- Вкладка "Визуалы" + Аимбот
 ------------------------------------------------------------
 local visualsPage = createScrollPage()
 visualsPage.Visible = false
@@ -918,7 +996,7 @@ targetDropdownBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Обновление списка каждую секунду, если дропдаун открыт
+-- Обновление списка каждую секунду
 task.spawn(function()
     while true do
         task.wait(1)
@@ -940,7 +1018,7 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 updateTargetList()
 
--- FOV кольцо (контур)
+-- FOV кольцо
 local fovCircle = Drawing.new("Circle")
 fovCircle.Color = Color3.fromRGB(255, 255, 255)
 fovCircle.Thickness = 1
@@ -1004,7 +1082,7 @@ targetMarker.Transparency = 0.5
 targetMarker.Visible = false
 targetMarker.Radius = 8
 
--- ================== ИСПРАВЛЕННЫЙ HUE-ПОЛЗУНОК ==================
+-- ============ ИСПРАВЛЕННЫЙ HUE-ПОЛЗУНОК ============
 local hueLabel = Instance.new("TextLabel")
 hueLabel.Size = UDim2.new(1, -20, 0, 20)
 hueLabel.BackgroundTransparency = 1
@@ -1018,7 +1096,7 @@ hueLabel.Parent = visualsPage
 local hueSliderFrame = Instance.new("Frame")
 hueSliderFrame.Size = UDim2.new(0, 260, 0, 32)
 hueSliderFrame.BackgroundTransparency = 1
-hueSliderFrame.Active = true  -- перехватываем ввод, чтобы не скроллилась страница
+hueSliderFrame.Active = true
 hueSliderFrame.Parent = visualsPage
 
 local hueTrack = Instance.new("Frame")
@@ -1026,7 +1104,7 @@ hueTrack.Size = UDim2.new(0, 200, 0, 8)
 hueTrack.Position = UDim2.new(0, 0, 0.5, -4)
 hueTrack.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
 hueTrack.BorderSizePixel = 0
-hueTrack.Active = true  -- важно для захвата касаний
+hueTrack.Active = true
 hueTrack.Parent = hueSliderFrame
 
 local trackCorner = Instance.new("UICorner")
@@ -1038,7 +1116,7 @@ hueKnob.Size = UDim2.new(0, 22, 0, 22)
 hueKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 hueKnob.Text = ""
 hueKnob.AutoButtonColor = false
-hueKnob.Active = true  -- захват ввода
+hueKnob.Active = true
 hueKnob.Parent = hueSliderFrame
 local knobCorner = Instance.new("UICorner")
 knobCorner.CornerRadius = UDim.new(1, 0)
@@ -1055,7 +1133,6 @@ hueValueLabel.TextSize = 14
 hueValueLabel.TextXAlignment = Enum.TextXAlignment.Left
 hueValueLabel.Parent = hueSliderFrame
 
--- Конвертация HSV -> RGB
 local function HSVtoRGB(h, s, v)
     h = h % 360
     local c = v * s
@@ -1090,11 +1167,9 @@ end
 
 local hueDragging = false
 
--- Начало перетаскивания (мышь или касание)
 hueKnob.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         hueDragging = true
-        -- мгновенно переставить ползунок на позицию касания
         local pos = UserInputService:GetMouseLocation()
         local trackAbsPos = hueTrack.AbsolutePosition
         local trackSize = hueTrack.AbsoluteSize
@@ -1105,14 +1180,12 @@ hueKnob.InputBegan:Connect(function(input)
     end
 end)
 
--- Конец перетаскивания
 hueKnob.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         hueDragging = false
     end
 end)
 
--- Отслеживание движения (мышь / касание)
 UserInputService.InputChanged:Connect(function(input)
     if not hueDragging then return end
     if input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -1136,9 +1209,8 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Инициализация позиции
 updateHueKnobPosition()
--- ================== КОНЕЦ HUE-ПОЛЗУНКА ==================
+-- ============ КОНЕЦ HUE-ПОЛЗУНКА ============
 
 task.spawn(function() fixScrolling(visualsPage) end)
 
