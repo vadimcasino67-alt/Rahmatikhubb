@@ -3,10 +3,12 @@
     Вкладки: Инфо, Настройки, Анимации, Игрок
     Сворачивание: кнопка X
     Открытие: плавающая кнопка R (для Android) + RightShift
+    + Fly в разделе Игрок
 ]]
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
@@ -91,11 +93,11 @@ openButton.Text = "R"
 openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 openButton.Font = Enum.Font.GothamBold
 openButton.TextSize = 22
-openButton.Visible = false -- появляется только когда меню свёрнуто
+openButton.Visible = false
 openButton.Parent = screenGui
 
 local openCorner = Instance.new("UICorner")
-openCorner.CornerRadius = UDim.new(1, 0) -- круглая
+openCorner.CornerRadius = UDim.new(1, 0)
 openCorner.Parent = openButton
 
 local openStroke = Instance.new("UIStroke")
@@ -120,7 +122,6 @@ end
 closeButton.MouseButton1Click:Connect(closeMenu)
 openButton.MouseButton1Click:Connect(openMenu)
 
--- RightShift тоже работает (на ПК)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	if input.KeyCode == Enum.KeyCode.RightShift then
@@ -285,7 +286,7 @@ animationsInfo.TextSize = 14
 animationsInfo.Parent = animationsPage
 
 ------------------------------------------------------------
--- Страница "Игрок"
+-- Страница "Игрок" + Fly
 ------------------------------------------------------------
 local playerPage = Instance.new("Frame")
 playerPage.Name = "PlayerPage"
@@ -306,7 +307,7 @@ playerLabel.TextSize = 18
 playerLabel.Parent = playerPage
 
 local playerInfo = Instance.new("TextLabel")
-playerInfo.Size = UDim2.new(1, -20, 0, 80)
+playerInfo.Size = UDim2.new(1, -20, 0, 60)
 playerInfo.Position = UDim2.new(0, 10, 0, 45)
 playerInfo.BackgroundTransparency = 1
 playerInfo.Text = "Имя: " .. player.Name .. "\nDisplayName: " .. player.DisplayName .. "\nUserId: " .. player.UserId
@@ -317,6 +318,108 @@ playerInfo.TextYAlignment = Enum.TextYAlignment.Top
 playerInfo.Font = Enum.Font.Gotham
 playerInfo.TextSize = 14
 playerInfo.Parent = playerPage
+
+-- Кнопка Fly On/Off
+local flyButton = Instance.new("TextButton")
+flyButton.Name = "FlyToggle"
+flyButton.Size = UDim2.new(0, 200, 0, 36)
+flyButton.Position = UDim2.new(0, 10, 0, 120)
+flyButton.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+flyButton.Text = "Fly: Выкл"
+flyButton.TextColor3 = Color3.fromRGB(230, 230, 230)
+flyButton.Font = Enum.Font.GothamBold
+flyButton.TextSize = 15
+flyButton.Parent = playerPage
+
+local flyCorner = Instance.new("UICorner")
+flyCorner.CornerRadius = UDim.new(0, 8)
+flyCorner.Parent = flyButton
+
+------------------------------------------------------------
+-- Логика Fly
+------------------------------------------------------------
+local flying = false
+local flySpeed = 50
+local bodyVelocity, bodyGyro
+
+local function startFly()
+	local char = player.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	flying = true
+
+	bodyVelocity = Instance.new("BodyVelocity")
+	bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+	bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+	bodyVelocity.Parent = hrp
+
+	bodyGyro = Instance.new("BodyGyro")
+	bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+	bodyGyro.P = 10000
+	bodyGyro.Parent = hrp
+end
+
+local function stopFly()
+	flying = false
+	if bodyVelocity then
+		bodyVelocity:Destroy()
+		bodyVelocity = nil
+	end
+	if bodyGyro then
+		bodyGyro:Destroy()
+		bodyGyro = nil
+	end
+end
+
+flyButton.MouseButton1Click:Connect(function()
+	if flying then
+		stopFly()
+		flyButton.Text = "Fly: Выкл"
+		flyButton.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+	else
+		startFly()
+		flyButton.Text = "Fly: Вкл"
+		flyButton.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+	end
+end)
+
+-- Управление полётом
+RunService.RenderStepped:Connect(function()
+	if not flying then return end
+	local char = player.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp or not bodyVelocity or not bodyGyro then return end
+
+	local camera = workspace.CurrentCamera
+	local moveDir = Vector3.new(0, 0, 0)
+
+	if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += camera.CFrame.LookVector end
+	if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= camera.CFrame.LookVector end
+	if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= camera.CFrame.RightVector end
+	if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += camera.CFrame.RightVector end
+	if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
+	if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0, 1, 0) end
+
+	if moveDir.Magnitude > 0 then
+		moveDir = moveDir.Unit
+		bodyVelocity.Velocity = moveDir * flySpeed
+		bodyGyro.CFrame = CFrame.new(hrp.Position, hrp.Position + camera.CFrame.LookVector)
+	else
+		bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+	end
+end)
+
+-- Если персонаж умер/респавнился — выключаем fly
+player.CharacterAdded:Connect(function()
+	if flying then
+		stopFly()
+		flyButton.Text = "Fly: Выкл"
+		flyButton.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+	end
+end)
 
 ------------------------------------------------------------
 -- Логика переключения вкладок
@@ -352,4 +455,4 @@ playerTabButton.MouseButton1Click:Connect(function()
 	selectTab("Player")
 end)
 
-selectTab("Info") -- вкладка по умолчанию
+selectTab("Info")
