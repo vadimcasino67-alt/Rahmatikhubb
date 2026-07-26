@@ -1,9 +1,11 @@
 --[[
-    RAHMAT Menu v6.2
-    — Полностью исправлен скролл (все пункты видны до низа)
-    — Список игроков для аимбота обновляется каждую секунду при открытом дропдауне
-    — Все лимиты сняты: можно ставить 0–99999 (скорость, прыжок, полёт, FOV)
-    — FOV — тонкое кольцо, Hue — ползунок (как просили)
+    RAHMAT Menu v6.3
+    — Исправлен Hue-ползунок: работает на ПК (мышь) и на телефоне (касание),
+      не конфликтует со скроллом страницы.
+    — Все лимиты сняты (0–99999).
+    — Скролл меню доходит до низа (жёсткая фиксация канваса).
+    — Список игроков аимбота обновляется раз в секунду, когда открыт.
+    — FOV — тонкое кольцо (контур).
 --]]
 
 local Players = game:GetService("Players")
@@ -853,7 +855,6 @@ targetListLayout.Parent = targetListFrame
 -- Список игроков (аймбот цель)
 local aimTargetPlayer = nil
 local function updateTargetList()
-    -- очистка
     for _, child in ipairs(targetListFrame:GetChildren()) do
         if child:IsA("TextButton") then
             child:Remove()
@@ -904,7 +905,6 @@ local function updateTargetList()
         end
     end
 
-    -- чиним скролл дропдауна
     task.spawn(function()
         task.wait()
         fixScrolling(targetListFrame)
@@ -940,14 +940,14 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 updateTargetList()
 
--- FOV кольцо (контур, не заливка)
+-- FOV кольцо (контур)
 local fovCircle = Drawing.new("Circle")
 fovCircle.Color = Color3.fromRGB(255, 255, 255)
 fovCircle.Thickness = 1
 fovCircle.Transparency = 0.8
 fovCircle.Visible = false
 fovCircle.Radius = 100
-fovCircle.Filled = false -- именно кольцо
+fovCircle.Filled = false
 
 local fovRadius = 100
 
@@ -989,7 +989,7 @@ fovApply.Parent = fovSliderRow
 fovApply.MouseButton1Click:Connect(function()
     local val = tonumber(fovBox.Text)
     if val then
-        val = math.clamp(val, 0, 99999) -- без лимита
+        val = math.clamp(val, 0, 99999)
         fovBox.Text = tostring(val)
         fovRadius = val
         fovCircle.Radius = val
@@ -1004,7 +1004,7 @@ targetMarker.Transparency = 0.5
 targetMarker.Visible = false
 targetMarker.Radius = 8
 
--- HUE-ползунок (перетаскиваемый)
+-- ================== ИСПРАВЛЕННЫЙ HUE-ПОЛЗУНОК ==================
 local hueLabel = Instance.new("TextLabel")
 hueLabel.Size = UDim2.new(1, -20, 0, 20)
 hueLabel.BackgroundTransparency = 1
@@ -1018,6 +1018,7 @@ hueLabel.Parent = visualsPage
 local hueSliderFrame = Instance.new("Frame")
 hueSliderFrame.Size = UDim2.new(0, 260, 0, 32)
 hueSliderFrame.BackgroundTransparency = 1
+hueSliderFrame.Active = true  -- перехватываем ввод, чтобы не скроллилась страница
 hueSliderFrame.Parent = visualsPage
 
 local hueTrack = Instance.new("Frame")
@@ -1025,6 +1026,7 @@ hueTrack.Size = UDim2.new(0, 200, 0, 8)
 hueTrack.Position = UDim2.new(0, 0, 0.5, -4)
 hueTrack.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
 hueTrack.BorderSizePixel = 0
+hueTrack.Active = true  -- важно для захвата касаний
 hueTrack.Parent = hueSliderFrame
 
 local trackCorner = Instance.new("UICorner")
@@ -1036,6 +1038,7 @@ hueKnob.Size = UDim2.new(0, 22, 0, 22)
 hueKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 hueKnob.Text = ""
 hueKnob.AutoButtonColor = false
+hueKnob.Active = true  -- захват ввода
 hueKnob.Parent = hueSliderFrame
 local knobCorner = Instance.new("UICorner")
 knobCorner.CornerRadius = UDim.new(1, 0)
@@ -1052,6 +1055,7 @@ hueValueLabel.TextSize = 14
 hueValueLabel.TextXAlignment = Enum.TextXAlignment.Left
 hueValueLabel.Parent = hueSliderFrame
 
+-- Конвертация HSV -> RGB
 local function HSVtoRGB(h, s, v)
     h = h % 360
     local c = v * s
@@ -1084,30 +1088,57 @@ local function updateHueKnobPosition()
     hueValueLabel.Text = tostring(currentHue)
 end
 
-local dragging = false
-hueKnob.MouseButton1Down:Connect(function()
-    dragging = true
-end)
+local hueDragging = false
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local mousePos = UserInputService:GetMouseLocation()
+-- Начало перетаскивания (мышь или касание)
+hueKnob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        hueDragging = true
+        -- мгновенно переставить ползунок на позицию касания
+        local pos = UserInputService:GetMouseLocation()
         local trackAbsPos = hueTrack.AbsolutePosition
         local trackSize = hueTrack.AbsoluteSize
-        local relX = math.clamp(mousePos.X - trackAbsPos.X, 0, trackSize.X)
+        local relX = math.clamp(pos.X - trackAbsPos.X, 0, trackSize.X)
         currentHue = math.floor((relX / trackSize.X) * 360)
         updateHueKnobPosition()
         applyHue(currentHue)
     end
 end)
 
+-- Конец перетаскивания
+hueKnob.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        hueDragging = false
+    end
+end)
+
+-- Отслеживание движения (мышь / касание)
+UserInputService.InputChanged:Connect(function(input)
+    if not hueDragging then return end
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        local pos = UserInputService:GetMouseLocation()
+        if pos then
+            local trackAbsPos = hueTrack.AbsolutePosition
+            local trackSize = hueTrack.AbsoluteSize
+            local relX = math.clamp(pos.X - trackAbsPos.X, 0, trackSize.X)
+            currentHue = math.floor((relX / trackSize.X) * 360)
+            updateHueKnobPosition()
+            applyHue(currentHue)
+        end
+    elseif input.UserInputType == Enum.UserInputType.Touch then
+        local pos = input.Position
+        local trackAbsPos = hueTrack.AbsolutePosition
+        local trackSize = hueTrack.AbsoluteSize
+        local relX = math.clamp(pos.X - trackAbsPos.X, 0, trackSize.X)
+        currentHue = math.floor((relX / trackSize.X) * 360)
+        updateHueKnobPosition()
+        applyHue(currentHue)
+    end
+end)
+
+-- Инициализация позиции
 updateHueKnobPosition()
+-- ================== КОНЕЦ HUE-ПОЛЗУНКА ==================
 
 task.spawn(function() fixScrolling(visualsPage) end)
 
