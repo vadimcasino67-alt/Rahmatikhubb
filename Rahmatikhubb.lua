@@ -3,7 +3,8 @@
     Вкладки: Инфо, Настройки, Анимации, Игрок
     Сворачивание: кнопка X
     Открытие: плавающая кнопка R (для Android) + RightShift
-    + Fly в разделе Игрок
+    + Улучшенный Fly с выбором скорости (работает на Android через виртуальные кнопки)
+    + Настройка скорости ходьбы и прыжка (сохранение при респавне)
 ]]
 
 local Players = game:GetService("Players")
@@ -28,8 +29,8 @@ screenGui.Parent = playerGui
 ------------------------------------------------------------
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 520, 0, 340)
-mainFrame.Position = UDim2.new(0.5, -260, 0.5, -170)
+mainFrame.Size = UDim2.new(0, 520, 0, 420) -- увеличена высота для новых элементов
+mainFrame.Position = UDim2.new(0.5, -260, 0.5, -210)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 34)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = true
@@ -286,7 +287,7 @@ animationsInfo.TextSize = 14
 animationsInfo.Parent = animationsPage
 
 ------------------------------------------------------------
--- Страница "Игрок" + Fly
+-- Страница "Игрок" + улучшенный Fly + настройки скорости
 ------------------------------------------------------------
 local playerPage = Instance.new("Frame")
 playerPage.Name = "PlayerPage"
@@ -295,6 +296,7 @@ playerPage.BackgroundTransparency = 1
 playerPage.Visible = false
 playerPage.Parent = contentFrame
 
+-- Информация об игроке
 local playerLabel = Instance.new("TextLabel")
 playerLabel.Size = UDim2.new(1, -20, 0, 30)
 playerLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -335,13 +337,235 @@ local flyCorner = Instance.new("UICorner")
 flyCorner.CornerRadius = UDim.new(0, 8)
 flyCorner.Parent = flyButton
 
+-- Панель настроек скорости (ходьба, прыжок, скорость полёта)
+local settingsPanel = Instance.new("Frame")
+settingsPanel.Name = "SettingsPanel"
+settingsPanel.Size = UDim2.new(1, -20, 0, 180)
+settingsPanel.Position = UDim2.new(0, 10, 0, 170)
+settingsPanel.BackgroundTransparency = 1
+settingsPanel.Parent = playerPage
+
+local settingsLayout = Instance.new("UIListLayout")
+settingsLayout.FillDirection = Enum.FillDirection.Vertical
+settingsLayout.Padding = UDim.new(0, 8)
+settingsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+settingsLayout.Parent = settingsPanel
+
+-- Функция создания строки настройки
+local function createSettingRow(parent, labelText, defaultVal, minVal, maxVal, callback)
+	local row = Instance.new("Frame")
+	row.Size = UDim2.new(1, 0, 0, 30)
+	row.BackgroundTransparency = 1
+	row.Parent = parent
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0, 140, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = labelText
+	label.TextColor3 = Color3.fromRGB(200, 200, 200)
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 14
+	label.Parent = row
+
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(0, 80, 1, 0)
+	textBox.Position = UDim2.new(0, 145, 0, 0)
+	textBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+	textBox.Text = tostring(defaultVal)
+	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.Font = Enum.Font.Gotham
+	textBox.TextSize = 14
+	textBox.PlaceholderText = "0"
+	textBox.ClearTextOnFocus = false
+	textBox.Parent = row
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = textBox
+
+	local applyBtn = Instance.new("TextButton")
+	applyBtn.Size = UDim2.new(0, 70, 1, 0)
+	applyBtn.Position = UDim2.new(1, -75, 0, 0)
+	applyBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
+	applyBtn.Text = "Прим."
+	applyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	applyBtn.Font = Enum.Font.Gotham
+	applyBtn.TextSize = 13
+	applyBtn.Parent = row
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = applyBtn
+
+	applyBtn.MouseButton1Click:Connect(function()
+		local val = tonumber(textBox.Text)
+		if val then
+			val = math.clamp(val, minVal, maxVal)
+			textBox.Text = tostring(val)
+			callback(val)
+		else
+			textBox.Text = tostring(defaultVal)
+		end
+	end)
+
+	return row, textBox, applyBtn
+end
+
+-- Сохраняемые значения
+local savedWalkSpeed = 16
+local savedJumpPower = 50
+local flySpeed = 50
+
+-- Применение настроек к персонажу
+local function applyWalkSpeed(speed)
+	savedWalkSpeed = speed
+	local char = player.Character
+	if char then
+		local hum = char:FindFirstChild("Humanoid")
+		if hum then
+			hum.WalkSpeed = speed
+		end
+	end
+end
+
+local function applyJumpPower(power)
+	savedJumpPower = power
+	local char = player.Character
+	if char then
+		local hum = char:FindFirstChild("Humanoid")
+		if hum then
+			hum.JumpPower = power
+		end
+	end
+end
+
+-- Строка скорости ходьбы
+local walkRow, walkBox, walkBtn = createSettingRow(settingsPanel, "Скорость ходьбы:", savedWalkSpeed, 0, 100, applyWalkSpeed)
+
+-- Строка скорости прыжка
+local jumpRow, jumpBox, jumpBtn = createSettingRow(settingsPanel, "Сила прыжка:", savedJumpPower, 0, 200, applyJumpPower)
+
+-- Строка скорости полёта
+local flySpeedRow, flySpeedBox, flySpeedBtn = createSettingRow(settingsPanel, "Скорость полёта:", flySpeed, 1, 500, function(val)
+	flySpeed = val
+end)
+
+-- Применяем настройки при респавне
+player.CharacterAdded:Connect(function(char)
+	wait(0.5) -- ждём появления Humanoid
+	local hum = char:FindFirstChild("Humanoid")
+	if hum then
+		hum.WalkSpeed = savedWalkSpeed
+		hum.JumpPower = savedJumpPower
+	end
+end)
+
+-- Применяем сразу, если персонаж уже есть
+local char = player.Character
+if char then
+	local hum = char:FindFirstChild("Humanoid")
+	if hum then
+		hum.WalkSpeed = savedWalkSpeed
+		hum.JumpPower = savedJumpPower
+	end
+end
+
 ------------------------------------------------------------
--- Логика Fly
+-- Логика Fly (улучшенная, с поддержкой Android)
 ------------------------------------------------------------
 local flying = false
-local flySpeed = 50
 local bodyVelocity, bodyGyro
 
+-- Переменные для управления с виртуальных кнопок (Android)
+local touchForward = false
+local touchBack = false
+local touchLeft = false
+local touchRight = false
+local touchUp = false
+local touchDown = false
+
+-- Создаём панель управления для Android (видна только при TouchEnabled и flying)
+local flyControls = Instance.new("Frame")
+flyControls.Name = "FlyControls"
+flyControls.Size = UDim2.new(0, 300, 0, 200)
+flyControls.Position = UDim2.new(0.5, -150, 1, -220)
+flyControls.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+flyControls.BackgroundTransparency = 0.3
+flyControls.Visible = false
+flyControls.Parent = screenGui
+
+local controlsCorner = Instance.new("UICorner")
+controlsCorner.CornerRadius = UDim.new(0, 12)
+controlsCorner.Parent = flyControls
+
+-- Создаём кнопки управления (расположение как джойстик, но проще)
+local buttonSize = 50
+local gap = 10
+
+local function createFlyButton(parent, text, posX, posY, onDown, onUp)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, buttonSize, 0, buttonSize)
+	btn.Position = UDim2.new(0, posX, 0, posY)
+	btn.BackgroundColor3 = Color3.fromRGB(80, 120, 220)
+	btn.Text = text
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 18
+	btn.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = btn
+
+	btn.MouseButton1Down:Connect(onDown)
+	btn.MouseButton1Up:Connect(onUp)
+	btn.MouseLeave:Connect(onUp) -- сброс при уходе мыши
+
+	return btn
+end
+
+-- Расположим кнопки: вверх (центр вверху), вниз (центр внизу), влево, вправо, вперёд (W) и назад (S) - но для удобства сделаем 6 кнопок в два ряда.
+-- Ряд 1: W(вперёд), Space(вверх), Shift(вниз)
+-- Ряд 2: A(влево), S(назад), D(вправо)
+-- Но лучше расположить как на геймпаде: вверх/вниз/влево/вправо + W/S.
+
+-- Сделаем две строки:
+-- верхняя: W (вперёд), Space (вверх), Shift (вниз)
+-- нижняя: A (влево), S (назад), D (вправо)
+
+local wBtn = createFlyButton(flyControls, "W", 10, 10, function() touchForward = true end, function() touchForward = false end)
+local spaceBtn = createFlyButton(flyControls, "▲", 70, 10, function() touchUp = true end, function() touchUp = false end)
+local shiftBtn = createFlyButton(flyControls, "▼", 130, 10, function() touchDown = true end, function() touchDown = false end)
+
+local aBtn = createFlyButton(flyControls, "A", 10, 70, function() touchLeft = true end, function() touchLeft = false end)
+local sBtn = createFlyButton(flyControls, "S", 70, 70, function() touchBack = true end, function() touchBack = false end)
+local dBtn = createFlyButton(flyControls, "D", 130, 70, function() touchRight = true end, function() touchRight = false end)
+
+-- Также добавим кнопку для отключения Fly (дублируем, но можно просто использовать основную)
+local stopFlyBtn = Instance.new("TextButton")
+stopFlyBtn.Size = UDim2.new(0, 60, 0, 30)
+stopFlyBtn.Position = UDim2.new(0, 210, 0, 10)
+stopFlyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+stopFlyBtn.Text = "OFF"
+stopFlyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopFlyBtn.Font = Enum.Font.GothamBold
+stopFlyBtn.TextSize = 14
+stopFlyBtn.Parent = flyControls
+local stopCorner = Instance.new("UICorner")
+stopCorner.CornerRadius = UDim.new(0, 8)
+stopCorner.Parent = stopFlyBtn
+
+stopFlyBtn.MouseButton1Click:Connect(function()
+	if flying then
+		stopFly()
+		flyButton.Text = "Fly: Выкл"
+		flyButton.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+		flyControls.Visible = false
+	end
+end)
+
+-- Функции запуска/остановки Fly
 local function startFly()
 	local char = player.Character
 	if not char then return end
@@ -359,6 +583,11 @@ local function startFly()
 	bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
 	bodyGyro.P = 10000
 	bodyGyro.Parent = hrp
+
+	-- Показываем управление для Android
+	if UserInputService.TouchEnabled then
+		flyControls.Visible = true
+	end
 end
 
 local function stopFly()
@@ -371,6 +600,14 @@ local function stopFly()
 		bodyGyro:Destroy()
 		bodyGyro = nil
 	end
+	flyControls.Visible = false
+	-- Сбрасываем touch-флаги
+	touchForward = false
+	touchBack = false
+	touchLeft = false
+	touchRight = false
+	touchUp = false
+	touchDown = false
 end
 
 flyButton.MouseButton1Click:Connect(function()
@@ -385,7 +622,7 @@ flyButton.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Управление полётом
+-- Обновление полёта (клавиши + сенсор)
 RunService.RenderStepped:Connect(function()
 	if not flying then return end
 	local char = player.Character
@@ -396,12 +633,21 @@ RunService.RenderStepped:Connect(function()
 	local camera = workspace.CurrentCamera
 	local moveDir = Vector3.new(0, 0, 0)
 
+	-- Клавиатурный ввод
 	if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += camera.CFrame.LookVector end
 	if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= camera.CFrame.LookVector end
 	if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= camera.CFrame.RightVector end
 	if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += camera.CFrame.RightVector end
 	if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
 	if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0, 1, 0) end
+
+	-- Сенсорные кнопки (Android)
+	if touchForward then moveDir += camera.CFrame.LookVector end
+	if touchBack then moveDir -= camera.CFrame.LookVector end
+	if touchLeft then moveDir -= camera.CFrame.RightVector end
+	if touchRight then moveDir += camera.CFrame.RightVector end
+	if touchUp then moveDir += Vector3.new(0, 1, 0) end
+	if touchDown then moveDir -= Vector3.new(0, 1, 0) end
 
 	if moveDir.Magnitude > 0 then
 		moveDir = moveDir.Unit
@@ -418,6 +664,13 @@ player.CharacterAdded:Connect(function()
 		stopFly()
 		flyButton.Text = "Fly: Выкл"
 		flyButton.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+	end
+	-- Применяем сохранённые настройки скорости
+	wait(0.5)
+	local hum = player.Character:FindFirstChild("Humanoid")
+	if hum then
+		hum.WalkSpeed = savedWalkSpeed
+		hum.JumpPower = savedJumpPower
 	end
 end)
 
