@@ -1,5 +1,9 @@
 --[[
-    RAHMAT Menu v6.1 — FOV как кольцо, Hue-слайдер, фикс скролла
+    RAHMAT Menu v6.2
+    — Полностью исправлен скролл (все пункты видны до низа)
+    — Список игроков для аимбота обновляется каждую секунду при открытом дропдауне
+    — Все лимиты сняты: можно ставить 0–99999 (скорость, прыжок, полёт, FOV)
+    — FOV — тонкое кольцо, Hue — ползунок (как просили)
 --]]
 
 local Players = game:GetService("Players")
@@ -205,7 +209,24 @@ contentCorner.Parent = contentFrame
 
 local pages = {}
 
--- Функция создания ScrollingFrame (теперь с фиксом скролла)
+-- Функция починки скролла (вызывается после добавления элементов)
+local function fixScrolling(sf)
+    task.wait() -- ждём кадр, чтобы размеры посчитались
+    local layout = sf:FindFirstChildOfClass("UIListLayout")
+    local padding = layout and layout.Padding.Offset or 0
+    local totalHeight = 0
+    for _, child in ipairs(sf:GetChildren()) do
+        if child:IsA("GuiObject") and child ~= layout then
+            totalHeight = totalHeight + child.AbsoluteSize.Y + padding
+        end
+    end
+    if totalHeight > 0 then
+        sf.AutomaticCanvasSize = Enum.AutomaticSize.None
+        sf.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+    end
+end
+
+-- Функция создания ScrollingFrame (скролл починим отдельно)
 local function createScrollPage()
     local sf = Instance.new("ScrollingFrame")
     sf.Size = UDim2.new(1, 0, 1, 0)
@@ -214,7 +235,7 @@ local function createScrollPage()
     sf.CanvasSize = UDim2.new(0, 0, 0, 0)
     sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
     sf.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
-    sf.ElasticBehavior = Enum.ElasticBehavior.Never  -- фикс пружины
+    sf.ElasticBehavior = Enum.ElasticBehavior.Never -- без пружины
     sf.Parent = contentFrame
     sf.Visible = false
 
@@ -227,7 +248,9 @@ local function createScrollPage()
     return sf
 end
 
--- Инфо
+------------------------------------------------------------
+-- Вкладка "Инфо"
+------------------------------------------------------------
 local infoPage = createScrollPage()
 infoPage.Visible = true
 pages.Info = infoPage
@@ -244,7 +267,11 @@ infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 15
 infoLabel.Parent = infoPage
 
--- Настройки
+task.spawn(function() fixScrolling(infoPage) end)
+
+------------------------------------------------------------
+-- Вкладка "Настройки"
+------------------------------------------------------------
 local settingsPage = createScrollPage()
 settingsPage.Visible = false
 pages.Settings = settingsPage
@@ -278,7 +305,11 @@ exampleToggle.MouseButton1Click:Connect(function()
     exampleToggle.Text = "Опция: " .. (toggleState and "Вкл" or "Выкл")
 end)
 
--- Анимации
+task.spawn(function() fixScrolling(settingsPage) end)
+
+------------------------------------------------------------
+-- Вкладка "Анимки"
+------------------------------------------------------------
 local animsPage = createScrollPage()
 animsPage.Visible = false
 pages.Animations = animsPage
@@ -456,7 +487,11 @@ playIdBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Игрок
+task.spawn(function() fixScrolling(animsPage) end)
+
+------------------------------------------------------------
+-- Вкладка "Игрок"
+------------------------------------------------------------
 local playerPage = createScrollPage()
 playerPage.Visible = false
 pages.Player = playerPage
@@ -548,7 +583,7 @@ noclipBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Слайдеры
+-- Слайдеры (лимиты расширены до 0–99999)
 local speedPanel = Instance.new("Frame")
 speedPanel.Size = UDim2.new(1, -20, 0, 180)
 speedPanel.BackgroundTransparency = 1
@@ -620,19 +655,21 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     return row
 end
 
-createSlider(speedPanel, "Скорость ходьбы:", 16, 0, 100, function(v)
+createSlider(speedPanel, "Скорость ходьбы:", 16, 0, 99999, function(v)
     savedWalkSpeed = v
     if humanoid then humanoid.WalkSpeed = v end
 end)
 
-createSlider(speedPanel, "Сила прыжка:", 50, 0, 200, function(v)
+createSlider(speedPanel, "Сила прыжка:", 50, 0, 99999, function(v)
     savedJumpPower = v
     if humanoid then humanoid.JumpPower = v end
 end)
 
-createSlider(speedPanel, "Скорость полёта:", 50, 1, 500, function(v)
+createSlider(speedPanel, "Скорость полёта:", 50, 0, 99999, function(v)
     flySpeed = v
 end)
+
+task.spawn(function() fixScrolling(playerPage) end)
 
 ------------------------------------------------------------
 -- Fly
@@ -711,7 +748,7 @@ player.CharacterAdded:Connect(function()
 end)
 
 ------------------------------------------------------------
--- Визуалы + Аимбот (выбор цели, FOV, маркер, цвет меню)
+-- Вкладка "Визуалы" + Аимбот (FOV-кольцо, Hue-ползунок, обновляемый список)
 ------------------------------------------------------------
 local visualsPage = createScrollPage()
 visualsPage.Visible = false
@@ -796,7 +833,7 @@ targetDropdownCorner.Parent = targetDropdownBtn
 
 local targetListFrame = Instance.new("ScrollingFrame")
 targetListFrame.Size = UDim2.new(0, 200, 0, 100)
-targetListFrame.Position = UDim2.new(0, 10, 0, 260) -- фиксированное положение
+targetListFrame.Position = UDim2.new(0, 10, 0, 260)
 targetListFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
 targetListFrame.BorderSizePixel = 0
 targetListFrame.Visible = false
@@ -813,16 +850,16 @@ targetListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 targetListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 targetListLayout.Parent = targetListFrame
 
--- Список игроков для выпадашки
-local aimTargetPlayer = nil  -- nil = все, иначе Player
+-- Список игроков (аймбот цель)
+local aimTargetPlayer = nil
 local function updateTargetList()
+    -- очистка
     for _, child in ipairs(targetListFrame:GetChildren()) do
         if child:IsA("TextButton") then
             child:Remove()
         end
     end
 
-    -- Кнопка "Все"
     local allBtn = Instance.new("TextButton")
     allBtn.Size = UDim2.new(1, -10, 0, 24)
     allBtn.BackgroundColor3 = (aimTargetPlayer == nil) and Color3.fromRGB(80, 120, 220) or Color3.fromRGB(55, 55, 60)
@@ -866,12 +903,28 @@ local function updateTargetList()
             end)
         end
     end
+
+    -- чиним скролл дропдауна
+    task.spawn(function()
+        task.wait()
+        fixScrolling(targetListFrame)
+    end)
 end
 
 targetDropdownBtn.MouseButton1Click:Connect(function()
     targetListFrame.Visible = not targetListFrame.Visible
     if targetListFrame.Visible then
         updateTargetList()
+    end
+end)
+
+-- Обновление списка каждую секунду, если дропдаун открыт
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if targetListFrame.Visible then
+            updateTargetList()
+        end
     end
 end)
 
@@ -887,14 +940,14 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 updateTargetList()
 
--- FOV кольцо (исправлено: только контур)
+-- FOV кольцо (контур, не заливка)
 local fovCircle = Drawing.new("Circle")
 fovCircle.Color = Color3.fromRGB(255, 255, 255)
 fovCircle.Thickness = 1
 fovCircle.Transparency = 0.8
 fovCircle.Visible = false
 fovCircle.Radius = 100
-fovCircle.Filled = false  -- ключевое изменение: делаем кольцо вместо заливки
+fovCircle.Filled = false -- именно кольцо
 
 local fovRadius = 100
 
@@ -936,7 +989,7 @@ fovApply.Parent = fovSliderRow
 fovApply.MouseButton1Click:Connect(function()
     local val = tonumber(fovBox.Text)
     if val then
-        val = math.clamp(val, 10, 500)
+        val = math.clamp(val, 0, 99999) -- без лимита
         fovBox.Text = tostring(val)
         fovRadius = val
         fovCircle.Radius = val
@@ -951,7 +1004,7 @@ targetMarker.Transparency = 0.5
 targetMarker.Visible = false
 targetMarker.Radius = 8
 
--- HUE-слайдер (ползунок)
+-- HUE-ползунок (перетаскиваемый)
 local hueLabel = Instance.new("TextLabel")
 hueLabel.Size = UDim2.new(1, -20, 0, 20)
 hueLabel.BackgroundTransparency = 1
@@ -967,7 +1020,6 @@ hueSliderFrame.Size = UDim2.new(0, 260, 0, 32)
 hueSliderFrame.BackgroundTransparency = 1
 hueSliderFrame.Parent = visualsPage
 
--- Трек слайдера
 local hueTrack = Instance.new("Frame")
 hueTrack.Size = UDim2.new(0, 200, 0, 8)
 hueTrack.Position = UDim2.new(0, 0, 0.5, -4)
@@ -979,7 +1031,6 @@ local trackCorner = Instance.new("UICorner")
 trackCorner.CornerRadius = UDim.new(0, 4)
 trackCorner.Parent = hueTrack
 
--- Ползунок
 local hueKnob = Instance.new("TextButton")
 hueKnob.Size = UDim2.new(0, 22, 0, 22)
 hueKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -990,7 +1041,6 @@ local knobCorner = Instance.new("UICorner")
 knobCorner.CornerRadius = UDim.new(1, 0)
 knobCorner.Parent = hueKnob
 
--- Метка значения
 local hueValueLabel = Instance.new("TextLabel")
 hueValueLabel.Size = UDim2.new(0, 50, 1, 0)
 hueValueLabel.Position = UDim2.new(0, 210, 0, 0)
@@ -1034,7 +1084,6 @@ local function updateHueKnobPosition()
     hueValueLabel.Text = tostring(currentHue)
 end
 
--- Логика перетаскивания слайдера
 local dragging = false
 hueKnob.MouseButton1Down:Connect(function()
     dragging = true
@@ -1060,7 +1109,11 @@ end)
 
 updateHueKnobPosition()
 
--- ESP
+task.spawn(function() fixScrolling(visualsPage) end)
+
+------------------------------------------------------------
+-- ESP и Аимбот
+------------------------------------------------------------
 local espEnabledNames = false
 local espEnabledBoxes = false
 local espObjects = {}
@@ -1190,7 +1243,6 @@ local function updateESP()
     end
 end
 
--- Аимбот логика
 local function getAimTarget()
     local camera = workspace.CurrentCamera
     if not camera then return nil end
@@ -1271,7 +1323,6 @@ RunService.RenderStepped:Connect(function()
     updateAimbot()
 end)
 
--- Управление переключателями
 local function refreshESP()
     clearAllESP()
     if espEnabledNames or espEnabledBoxes then
@@ -1308,7 +1359,6 @@ Players.PlayerAdded:Connect(function(target)
         createESPForPlayer(target)
     end
 end)
-
 Players.PlayerRemoving:Connect(function(target)
     clearESP(target)
 end)
