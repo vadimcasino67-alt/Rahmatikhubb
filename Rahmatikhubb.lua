@@ -3,8 +3,8 @@
     Вкладки: Инфо, Настройки, Анимации, Игрок
     Сворачивание: кнопка X
     Открытие: плавающая кнопка R (для Android) + RightShift
-    + Улучшенный Fly с выбором скорости (работает на Android через виртуальные кнопки)
-    + Настройка скорости ходьбы и прыжка (сохранение при респавне)
+    + Улучшенный Fly (управление через стандартный джойстик + клавиши Space/Shift)
+    + Вкладка "Анимации" с воспроизведением стандартных анимаций и загрузкой по ID
 ]]
 
 local Players = game:GetService("Players")
@@ -29,8 +29,8 @@ screenGui.Parent = playerGui
 ------------------------------------------------------------
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 520, 0, 420) -- увеличена высота для новых элементов
-mainFrame.Position = UDim2.new(0.5, -260, 0.5, -210)
+mainFrame.Size = UDim2.new(0, 520, 0, 440) -- немного увеличим высоту
+mainFrame.Position = UDim2.new(0.5, -260, 0.5, -220)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 34)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = true
@@ -253,7 +253,7 @@ toggleButton.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------------------
--- Страница "Анимации"
+-- Страница "Анимации" (обновлено)
 ------------------------------------------------------------
 local animationsPage = Instance.new("Frame")
 animationsPage.Name = "AnimationsPage"
@@ -273,21 +273,188 @@ animationsLabel.Font = Enum.Font.GothamBold
 animationsLabel.TextSize = 18
 animationsLabel.Parent = animationsPage
 
-local animationsInfo = Instance.new("TextLabel")
-animationsInfo.Size = UDim2.new(1, -20, 0, 60)
-animationsInfo.Position = UDim2.new(0, 10, 0, 45)
-animationsInfo.BackgroundTransparency = 1
-animationsInfo.Text = "Здесь будут анимации персонажа.\nДобавьте кнопки воспроизведения анимаций."
-animationsInfo.TextColor3 = Color3.fromRGB(200, 200, 200)
-animationsInfo.TextWrapped = true
-animationsInfo.TextXAlignment = Enum.TextXAlignment.Left
-animationsInfo.TextYAlignment = Enum.TextYAlignment.Top
-animationsInfo.Font = Enum.Font.Gotham
-animationsInfo.TextSize = 14
-animationsInfo.Parent = animationsPage
+-- Контейнер для кнопок анимаций
+local animButtonContainer = Instance.new("Frame")
+animButtonContainer.Name = "AnimButtonContainer"
+animButtonContainer.Size = UDim2.new(1, -20, 0, 150)
+animButtonContainer.Position = UDim2.new(0, 10, 0, 45)
+animButtonContainer.BackgroundTransparency = 1
+animButtonContainer.Parent = animationsPage
+
+local animLayout = Instance.new("UIListLayout")
+animLayout.FillDirection = Enum.FillDirection.Horizontal
+animLayout.Wrap = true
+animLayout.Padding = UDim.new(0, 8)
+animLayout.Spacing = UDim.new(0, 8)
+animLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+animLayout.Parent = animButtonContainer
+
+-- Словарь стандартных анимаций (ID и название)
+local animations = {
+	{id = "180393100", name = "Idle"},
+	{id = "180393200", name = "Walk"},
+	{id = "180393300", name = "Run"},
+	{id = "180393400", name = "Jump"},
+	{id = "180393500", name = "Sit"},
+	{id = "180393600", name = "Dance"}
+}
+
+local currentAnimationTrack = nil
+local animator = nil
+
+-- Функция получения Animator
+local function getAnimator()
+	local char = player.Character
+	if not char then return nil end
+	local hum = char:FindFirstChild("Humanoid")
+	if not hum then return nil end
+	-- Ищем Animator в Humanoid или в самом персонаже
+	local anim = hum:FindFirstChild("Animator")
+	if not anim then
+		anim = Instance.new("Animator")
+		anim.Parent = hum
+	end
+	return anim
+end
+
+-- Функция остановки текущей анимации
+local function stopAnimation()
+	if currentAnimationTrack then
+		currentAnimationTrack:Stop()
+		currentAnimationTrack = nil
+	end
+end
+
+-- Создание кнопки для анимации
+local function createAnimButton(parent, animData)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 100, 0, 36)
+	btn.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+	btn.Text = animData.name
+	btn.TextColor3 = Color3.fromRGB(230, 230, 230)
+	btn.Font = Enum.Font.Gotham
+	btn.TextSize = 14
+	btn.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = btn
+
+	btn.MouseButton1Click:Connect(function()
+		stopAnimation()
+		animator = getAnimator()
+		if not animator then return end
+		local track = animator:LoadAnimation(Instance.new("Animation"))
+		track.AnimationId = "rbxassetid://" .. animData.id
+		track:Play()
+		currentAnimationTrack = track
+		-- Меняем цвет кнопки, чтобы показать активную
+		for _, child in parent:GetChildren() do
+			if child:IsA("TextButton") then
+				child.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+			end
+		end
+		btn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+	end)
+
+	return btn
+end
+
+for _, anim in ipairs(animations) do
+	createAnimButton(animButtonContainer, anim)
+end
+
+-- Кнопка "Стоп"
+local stopAnimBtn = Instance.new("TextButton")
+stopAnimBtn.Size = UDim2.new(0, 100, 0, 36)
+stopAnimBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+stopAnimBtn.Text = "Стоп"
+stopAnimBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopAnimBtn.Font = Enum.Font.GothamBold
+stopAnimBtn.TextSize = 14
+stopAnimBtn.Parent = animButtonContainer
+
+local stopCorner = Instance.new("UICorner")
+stopCorner.CornerRadius = UDim.new(0, 8)
+stopCorner.Parent = stopAnimBtn
+
+stopAnimBtn.MouseButton1Click:Connect(function()
+	stopAnimation()
+	-- Сброс цвета кнопок
+	for _, child in animButtonContainer:GetChildren() do
+		if child:IsA("TextButton") and child ~= stopAnimBtn then
+			child.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+		end
+	end
+end)
+
+-- Поле для ввода своего ID анимации
+local animIdFrame = Instance.new("Frame")
+animIdFrame.Size = UDim2.new(1, -20, 0, 36)
+animIdFrame.Position = UDim2.new(0, 10, 0, 205)
+animIdFrame.BackgroundTransparency = 1
+animIdFrame.Parent = animationsPage
+
+local idLabel = Instance.new("TextLabel")
+idLabel.Size = UDim2.new(0, 100, 1, 0)
+idLabel.BackgroundTransparency = 1
+idLabel.Text = "ID анимации:"
+idLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+idLabel.TextXAlignment = Enum.TextXAlignment.Left
+idLabel.Font = Enum.Font.Gotham
+idLabel.TextSize = 14
+idLabel.Parent = animIdFrame
+
+local idBox = Instance.new("TextBox")
+idBox.Size = UDim2.new(0, 150, 1, 0)
+idBox.Position = UDim2.new(0, 105, 0, 0)
+idBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+idBox.Text = ""
+idBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+idBox.Font = Enum.Font.Gotham
+idBox.TextSize = 14
+idBox.PlaceholderText = "Введите ID"
+idBox.ClearTextOnFocus = false
+idBox.Parent = animIdFrame
+
+local idCorner = Instance.new("UICorner")
+idCorner.CornerRadius = UDim.new(0, 6)
+idCorner.Parent = idBox
+
+local playIdBtn = Instance.new("TextButton")
+playIdBtn.Size = UDim2.new(0, 80, 1, 0)
+playIdBtn.Position = UDim2.new(1, -85, 0, 0)
+playIdBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
+playIdBtn.Text = "Играть"
+playIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+playIdBtn.Font = Enum.Font.Gotham
+playIdBtn.TextSize = 14
+playIdBtn.Parent = animIdFrame
+
+local playIdCorner = Instance.new("UICorner")
+playIdCorner.CornerRadius = UDim.new(0, 6)
+playIdCorner.Parent = playIdBtn
+
+playIdBtn.MouseButton1Click:Connect(function()
+	local id = idBox.Text
+	if id == "" then return end
+	stopAnimation()
+	animator = getAnimator()
+	if not animator then return end
+	local track = animator:LoadAnimation(Instance.new("Animation"))
+	track.AnimationId = "rbxassetid://" .. id
+	track:Play()
+	currentAnimationTrack = track
+	-- Сброс цвета кнопок
+	for _, child in animButtonContainer:GetChildren() do
+		if child:IsA("TextButton") then
+			child.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+		end
+	end
+end)
 
 ------------------------------------------------------------
--- Страница "Игрок" + улучшенный Fly + настройки скорости
+-- Страница "Игрок" + Fly (без дополнительных кнопок)
 ------------------------------------------------------------
 local playerPage = Instance.new("Frame")
 playerPage.Name = "PlayerPage"
@@ -453,7 +620,7 @@ end)
 
 -- Применяем настройки при респавне
 player.CharacterAdded:Connect(function(char)
-	wait(0.5) -- ждём появления Humanoid
+	wait(0.5)
 	local hum = char:FindFirstChild("Humanoid")
 	if hum then
 		hum.WalkSpeed = savedWalkSpeed
@@ -472,100 +639,11 @@ if char then
 end
 
 ------------------------------------------------------------
--- Логика Fly (улучшенная, с поддержкой Android)
+-- Логика Fly (управление через стандартные клавиши)
 ------------------------------------------------------------
 local flying = false
 local bodyVelocity, bodyGyro
 
--- Переменные для управления с виртуальных кнопок (Android)
-local touchForward = false
-local touchBack = false
-local touchLeft = false
-local touchRight = false
-local touchUp = false
-local touchDown = false
-
--- Создаём панель управления для Android (видна только при TouchEnabled и flying)
-local flyControls = Instance.new("Frame")
-flyControls.Name = "FlyControls"
-flyControls.Size = UDim2.new(0, 300, 0, 200)
-flyControls.Position = UDim2.new(0.5, -150, 1, -220)
-flyControls.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
-flyControls.BackgroundTransparency = 0.3
-flyControls.Visible = false
-flyControls.Parent = screenGui
-
-local controlsCorner = Instance.new("UICorner")
-controlsCorner.CornerRadius = UDim.new(0, 12)
-controlsCorner.Parent = flyControls
-
--- Создаём кнопки управления (расположение как джойстик, но проще)
-local buttonSize = 50
-local gap = 10
-
-local function createFlyButton(parent, text, posX, posY, onDown, onUp)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, buttonSize, 0, buttonSize)
-	btn.Position = UDim2.new(0, posX, 0, posY)
-	btn.BackgroundColor3 = Color3.fromRGB(80, 120, 220)
-	btn.Text = text
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 18
-	btn.Parent = parent
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(1, 0)
-	corner.Parent = btn
-
-	btn.MouseButton1Down:Connect(onDown)
-	btn.MouseButton1Up:Connect(onUp)
-	btn.MouseLeave:Connect(onUp) -- сброс при уходе мыши
-
-	return btn
-end
-
--- Расположим кнопки: вверх (центр вверху), вниз (центр внизу), влево, вправо, вперёд (W) и назад (S) - но для удобства сделаем 6 кнопок в два ряда.
--- Ряд 1: W(вперёд), Space(вверх), Shift(вниз)
--- Ряд 2: A(влево), S(назад), D(вправо)
--- Но лучше расположить как на геймпаде: вверх/вниз/влево/вправо + W/S.
-
--- Сделаем две строки:
--- верхняя: W (вперёд), Space (вверх), Shift (вниз)
--- нижняя: A (влево), S (назад), D (вправо)
-
-local wBtn = createFlyButton(flyControls, "W", 10, 10, function() touchForward = true end, function() touchForward = false end)
-local spaceBtn = createFlyButton(flyControls, "▲", 70, 10, function() touchUp = true end, function() touchUp = false end)
-local shiftBtn = createFlyButton(flyControls, "▼", 130, 10, function() touchDown = true end, function() touchDown = false end)
-
-local aBtn = createFlyButton(flyControls, "A", 10, 70, function() touchLeft = true end, function() touchLeft = false end)
-local sBtn = createFlyButton(flyControls, "S", 70, 70, function() touchBack = true end, function() touchBack = false end)
-local dBtn = createFlyButton(flyControls, "D", 130, 70, function() touchRight = true end, function() touchRight = false end)
-
--- Также добавим кнопку для отключения Fly (дублируем, но можно просто использовать основную)
-local stopFlyBtn = Instance.new("TextButton")
-stopFlyBtn.Size = UDim2.new(0, 60, 0, 30)
-stopFlyBtn.Position = UDim2.new(0, 210, 0, 10)
-stopFlyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-stopFlyBtn.Text = "OFF"
-stopFlyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-stopFlyBtn.Font = Enum.Font.GothamBold
-stopFlyBtn.TextSize = 14
-stopFlyBtn.Parent = flyControls
-local stopCorner = Instance.new("UICorner")
-stopCorner.CornerRadius = UDim.new(0, 8)
-stopCorner.Parent = stopFlyBtn
-
-stopFlyBtn.MouseButton1Click:Connect(function()
-	if flying then
-		stopFly()
-		flyButton.Text = "Fly: Выкл"
-		flyButton.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
-		flyControls.Visible = false
-	end
-end)
-
--- Функции запуска/остановки Fly
 local function startFly()
 	local char = player.Character
 	if not char then return end
@@ -583,11 +661,6 @@ local function startFly()
 	bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
 	bodyGyro.P = 10000
 	bodyGyro.Parent = hrp
-
-	-- Показываем управление для Android
-	if UserInputService.TouchEnabled then
-		flyControls.Visible = true
-	end
 end
 
 local function stopFly()
@@ -600,14 +673,6 @@ local function stopFly()
 		bodyGyro:Destroy()
 		bodyGyro = nil
 	end
-	flyControls.Visible = false
-	-- Сбрасываем touch-флаги
-	touchForward = false
-	touchBack = false
-	touchLeft = false
-	touchRight = false
-	touchUp = false
-	touchDown = false
 end
 
 flyButton.MouseButton1Click:Connect(function()
@@ -622,7 +687,7 @@ flyButton.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Обновление полёта (клавиши + сенсор)
+-- Обновление полёта (клавиши + джойстик Android)
 RunService.RenderStepped:Connect(function()
 	if not flying then return end
 	local char = player.Character
@@ -633,21 +698,13 @@ RunService.RenderStepped:Connect(function()
 	local camera = workspace.CurrentCamera
 	local moveDir = Vector3.new(0, 0, 0)
 
-	-- Клавиатурный ввод
+	-- Клавиатурный ввод (на Android эмулируется джойстиком и кнопками)
 	if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += camera.CFrame.LookVector end
 	if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= camera.CFrame.LookVector end
 	if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= camera.CFrame.RightVector end
 	if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += camera.CFrame.RightVector end
 	if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
 	if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0, 1, 0) end
-
-	-- Сенсорные кнопки (Android)
-	if touchForward then moveDir += camera.CFrame.LookVector end
-	if touchBack then moveDir -= camera.CFrame.LookVector end
-	if touchLeft then moveDir -= camera.CFrame.RightVector end
-	if touchRight then moveDir += camera.CFrame.RightVector end
-	if touchUp then moveDir += Vector3.new(0, 1, 0) end
-	if touchDown then moveDir -= Vector3.new(0, 1, 0) end
 
 	if moveDir.Magnitude > 0 then
 		moveDir = moveDir.Unit
@@ -664,13 +721,6 @@ player.CharacterAdded:Connect(function()
 		stopFly()
 		flyButton.Text = "Fly: Выкл"
 		flyButton.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
-	end
-	-- Применяем сохранённые настройки скорости
-	wait(0.5)
-	local hum = player.Character:FindFirstChild("Humanoid")
-	if hum then
-		hum.WalkSpeed = savedWalkSpeed
-		hum.JumpPower = savedJumpPower
 	end
 end)
 
