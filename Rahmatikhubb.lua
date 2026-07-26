@@ -1,7 +1,6 @@
 --[[
-    RAHMAT Menu v3 (Fly через джойстик + направление камеры)
-    Исправленная версия — вкладки работают, вертикальные кнопки удалены,
-    новые анимации, раздел Визуалы с ESP ников и хитбоксов.
+    RAHMAT Menu v4 (Починены хитбоксы, возвращён ввод ID анимаций,
+    добавлены Noclip и Аимбот)
 ]]
 
 local Players = game:GetService("Players")
@@ -29,6 +28,9 @@ player.CharacterAdded:Connect(function()
     if humanoid then
         humanoid.WalkSpeed = savedWalkSpeed
         humanoid.JumpPower = savedJumpPower
+    end
+    if noclipEnabled then
+        enableNoClip() -- переприменить после респавна
     end
 end)
 
@@ -284,7 +286,7 @@ animsLabel.TextSize = 18
 animsLabel.Parent = animsPage
 
 local animContainer = Instance.new("Frame")
-animContainer.Size = UDim2.new(1, -20, 0, 150)
+animContainer.Size = UDim2.new(1, -20, 0, 180)
 animContainer.Position = UDim2.new(0, 10, 0, 45)
 animContainer.BackgroundTransparency = 1
 animContainer.Parent = animsPage
@@ -389,7 +391,64 @@ stopBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Убран ввод ID анимации (idFrame и всё с ним)
+-- ВОЗВРАЩЁН ВВОД ID АНИМАЦИЙ
+local idFrame = Instance.new("Frame")
+idFrame.Size = UDim2.new(1, -20, 0, 36)
+idFrame.Position = UDim2.new(0, 10, 0, 230)
+idFrame.BackgroundTransparency = 1
+idFrame.Parent = animsPage
+
+local idLabel = Instance.new("TextLabel")
+idLabel.Size = UDim2.new(0, 100, 1, 0)
+idLabel.BackgroundTransparency = 1
+idLabel.Text = "ID анимации:"
+idLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+idLabel.TextXAlignment = Enum.TextXAlignment.Left
+idLabel.Font = Enum.Font.Gotham
+idLabel.TextSize = 14
+idLabel.Parent = idFrame
+
+local idBox = Instance.new("TextBox")
+idBox.Size = UDim2.new(0, 150, 1, 0)
+idBox.Position = UDim2.new(0, 105, 0, 0)
+idBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+idBox.Text = ""
+idBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+idBox.Font = Enum.Font.Gotham
+idBox.TextSize = 14
+idBox.PlaceholderText = "Введите ID"
+idBox.ClearTextOnFocus = false
+idBox.Parent = idFrame
+
+local idCorner = Instance.new("UICorner")
+idCorner.CornerRadius = UDim.new(0, 6)
+idCorner.Parent = idBox
+
+local playIdBtn = Instance.new("TextButton")
+playIdBtn.Size = UDim2.new(0, 80, 1, 0)
+playIdBtn.Position = UDim2.new(1, -85, 0, 0)
+playIdBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
+playIdBtn.Text = "Играть"
+playIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+playIdBtn.Font = Enum.Font.Gotham
+playIdBtn.TextSize = 14
+playIdBtn.Parent = idFrame
+
+local playIdCorner = Instance.new("UICorner")
+playIdCorner.CornerRadius = UDim.new(0, 6)
+playIdCorner.Parent = playIdBtn
+
+playIdBtn.MouseButton1Click:Connect(function()
+    local id = idBox.Text
+    if id ~= "" then
+        playAnimationById(id)
+        for _, child in animContainer:GetChildren() do
+            if child:IsA("TextButton") then
+                child.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+            end
+        end
+    end
+end)
 
 -- Игрок
 local playerPage = Instance.new("Frame")
@@ -437,10 +496,59 @@ local flyCorner = Instance.new("UICorner")
 flyCorner.CornerRadius = UDim.new(0, 8)
 flyCorner.Parent = flyBtn
 
+-- NOCLIP
+local noclipEnabled = false
+local noclipBtn = Instance.new("TextButton")
+noclipBtn.Size = UDim2.new(0, 200, 0, 36)
+noclipBtn.Position = UDim2.new(0, 10, 0, 166)
+noclipBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+noclipBtn.Text = "Noclip: Выкл"
+noclipBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
+noclipBtn.Font = Enum.Font.GothamBold
+noclipBtn.TextSize = 15
+noclipBtn.Parent = playerPage
+
+local noclipCorner = Instance.new("UICorner")
+noclipCorner.CornerRadius = UDim.new(0, 8)
+noclipCorner.Parent = noclipBtn
+
+local function enableNoClip()
+    updateCharacter()
+    if not character then return end
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+end
+
+local function disableNoClip()
+    updateCharacter()
+    if not character then return end
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
+        end
+    end
+end
+
+noclipBtn.MouseButton1Click:Connect(function()
+    noclipEnabled = not noclipEnabled
+    if noclipEnabled then
+        enableNoClip()
+        noclipBtn.Text = "Noclip: Вкл"
+        noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+    else
+        disableNoClip()
+        noclipBtn.Text = "Noclip: Выкл"
+        noclipBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+    end
+end)
+
 -- Настройки скорости
 local speedPanel = Instance.new("Frame")
 speedPanel.Size = UDim2.new(1, -20, 0, 180)
-speedPanel.Position = UDim2.new(0, 10, 0, 170)
+speedPanel.Position = UDim2.new(0, 10, 0, 212) -- сдвинуто вниз из-за noclip
 speedPanel.BackgroundTransparency = 1
 speedPanel.Parent = playerPage
 
@@ -525,7 +633,7 @@ createSlider(speedPanel, "Скорость полёта:", 50, 1, 500, function(
 end)
 
 ------------------------------------------------------------
--- Fly (только джойстик + камера, без вертикальных кнопок)
+-- Fly (только джойстик + камера)
 ------------------------------------------------------------
 local function startFly()
     updateCharacter()
@@ -545,14 +653,8 @@ end
 
 local function stopFly()
     flying = false
-    if bodyVelocity then
-        bodyVelocity:Destroy()
-        bodyVelocity = nil
-    end
-    if bodyGyro then
-        bodyGyro:Destroy()
-        bodyGyro = nil
-    end
+    if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
+    if bodyGyro then bodyGyro:Destroy(); bodyGyro = nil end
 end
 
 flyBtn.MouseButton1Click:Connect(function()
@@ -567,7 +669,6 @@ flyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Обработка полёта (только джойстик)
 RunService.RenderStepped:Connect(function()
     if not flying then return end
     updateCharacter()
@@ -599,7 +700,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Отключаем Fly при смерти / респавне
 player.CharacterAdded:Connect(function()
     if flying then
         stopFly()
@@ -609,7 +709,7 @@ player.CharacterAdded:Connect(function()
 end)
 
 ------------------------------------------------------------
--- Визуалы (ESP ников и хитбоксов)
+-- Визуалы (ESP ников, хитбоксов, Аимбот)
 ------------------------------------------------------------
 local visualsPage = Instance.new("Frame")
 visualsPage.Size = UDim2.new(1, 0, 1, 0)
@@ -657,16 +757,32 @@ local boxesCorner = Instance.new("UICorner")
 boxesCorner.CornerRadius = UDim.new(0, 8)
 boxesCorner.Parent = boxesToggle
 
+-- АИМБОТ
+local aimbotEnabled = false
+local aimbotBtn = Instance.new("TextButton")
+aimbotBtn.Size = UDim2.new(0, 200, 0, 34)
+aimbotBtn.Position = UDim2.new(0, 10, 0, 138)
+aimbotBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+aimbotBtn.Text = "Аимбот: Выкл"
+aimbotBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
+aimbotBtn.Font = Enum.Font.Gotham
+aimbotBtn.TextSize = 14
+aimbotBtn.Parent = visualsPage
+
+local aimbotCorner = Instance.new("UICorner")
+aimbotCorner.CornerRadius = UDim.new(0, 8)
+aimbotCorner.Parent = aimbotBtn
+
 local espEnabledNames = false
 local espEnabledBoxes = false
 local espObjects = {} -- [player] = {nameTag, lines}
 
-local function clearESP(player)
-    local data = espObjects[player]
+local function clearESP(target)
+    local data = espObjects[target]
     if data then
         if data.nameTag then data.nameTag:Remove() end
         if data.lines then for _, line in ipairs(data.lines) do line:Remove() end end
-        espObjects[player] = nil
+        espObjects[target] = nil
     end
 end
 
@@ -696,10 +812,10 @@ local function createESPForPlayer(target)
 
     if espEnabledBoxes then
         local colors = {Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0)}
-        for i = 1, 4 do
+        for i = 1, 12 do -- хитбокс из 12 линий (куб)
             local line = Drawing.new("Line")
-            line.Color = colors[i]
-            line.Thickness = 1.5
+            line.Color = colors[1]
+            line.Thickness = 2
             line.Visible = false
             table.insert(data.lines, line)
         end
@@ -737,20 +853,21 @@ local function updateESP()
             end
         end
 
-        -- Обновление хитбокса
+        -- Обновление хитбокса (12 линий для куба)
         if #data.lines > 0 then
             if visible then
                 local cframe = hrp.CFrame
-                local size = char:GetExtentsSize() / 2
+                local extents = char:GetExtentsSize()
+                local half = extents / 2
                 local corners = {
-                    cframe * Vector3.new(-size.X, size.Y, -size.Z),
-                    cframe * Vector3.new(size.X, size.Y, -size.Z),
-                    cframe * Vector3.new(size.X, size.Y, size.Z),
-                    cframe * Vector3.new(-size.X, size.Y, size.Z),
-                    cframe * Vector3.new(-size.X, -size.Y, -size.Z),
-                    cframe * Vector3.new(size.X, -size.Y, -size.Z),
-                    cframe * Vector3.new(size.X, -size.Y, size.Z),
-                    cframe * Vector3.new(-size.X, -size.Y, size.Z)
+                    cframe * Vector3.new(-half.X, extents.Y, -half.Z),  -- top-left-front
+                    cframe * Vector3.new(half.X, extents.Y, -half.Z),   -- top-right-front
+                    cframe * Vector3.new(half.X, extents.Y, half.Z),    -- top-right-back
+                    cframe * Vector3.new(-half.X, extents.Y, half.Z),   -- top-left-back
+                    cframe * Vector3.new(-half.X, 0, -half.Z),          -- bottom-left-front
+                    cframe * Vector3.new(half.X, 0, -half.Z),           -- bottom-right-front
+                    cframe * Vector3.new(half.X, 0, half.Z),            -- bottom-right-back
+                    cframe * Vector3.new(-half.X, 0, half.Z)            -- bottom-left-back
                 }
                 local screenCorners = {}
                 local allOnScreen = true
@@ -763,18 +880,21 @@ local function updateESP()
                     table.insert(screenCorners, screenPos)
                 end
 
-                if allOnScreen then
+                if allOnScreen and #screenCorners == 8 then
+                    -- 12 рёбер куба
                     local edges = {
-                        {1,2}, {2,3}, {3,4}, {4,1}, -- top face
-                        {5,6}, {6,7}, {7,8}, {8,5}, -- bottom face
-                        {1,5}, {2,6}, {3,7}, {4,8}  -- vertical
+                        {1,2}, {2,3}, {3,4}, {4,1}, -- верхняя грань
+                        {5,6}, {6,7}, {7,8}, {8,5}, -- нижняя грань
+                        {1,5}, {2,6}, {3,7}, {4,8}  -- вертикальные
                     }
                     for i, edge in ipairs(edges) do
-                        local p1 = screenCorners[edge[1]]
-                        local p2 = screenCorners[edge[2]]
-                        data.lines[i].From = Vector2.new(p1.X, p1.Y)
-                        data.lines[i].To = Vector2.new(p2.X, p2.Y)
-                        data.lines[i].Visible = true
+                        if i <= #data.lines then
+                            local p1 = screenCorners[edge[1]]
+                            local p2 = screenCorners[edge[2]]
+                            data.lines[i].From = Vector2.new(p1.X, p1.Y)
+                            data.lines[i].To = Vector2.new(p2.X, p2.Y)
+                            data.lines[i].Visible = true
+                        end
                     end
                 else
                     for _, line in ipairs(data.lines) do line.Visible = false end
@@ -786,22 +906,64 @@ local function updateESP()
     end
 end
 
--- Подключение обновления ESP в RenderStepped (добавим к существующему)
-local function onRenderStepped()
-    if espEnabledNames or espEnabledBoxes then
-        updateESP()
+-- Аимбот: поиск ближайшего игрока и поворот камеры
+local function getClosestPlayer()
+    local camera = workspace.CurrentCamera
+    if not camera then return nil end
+    local closest = nil
+    local shortestDist = 200  -- максимальная дистанция аимбота
+    local mousePos = UserInputService:GetMouseLocation()
+    local screenCenter = camera.ViewportSize / 2
+    local ray = camera:ScreenPointToRay(screenCenter.X, screenCenter.Y)
+    local cameraPos = ray.Origin
+    local cameraDir = ray.Direction
+
+    for _, target in ipairs(Players:GetPlayers()) do
+        if target ~= player then
+            local char = target.Character
+            local head = char and char:FindFirstChild("Head")
+            if head and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                local dist = (head.Position - cameraPos).Magnitude
+                if dist < shortestDist then
+                    -- проверка угла от центра экрана
+                    local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local delta = Vector2.new(screenPos.X - screenCenter.X, screenPos.Y - screenCenter.Y)
+                        if delta.Magnitude < 400 then -- в радиусе аимбота
+                            shortestDist = dist
+                            closest = target
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function updateAimbot()
+    if not aimbotEnabled then return end
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+    local target = getClosestPlayer()
+    if target and target.Character and target.Character:FindFirstChild("Head") then
+        local head = target.Character.Head
+        local lookAt = head.Position
+        camera.CFrame = CFrame.new(camera.CFrame.Position, lookAt)
     end
 end
 
--- Переопределим RenderStepped, добавив вызов ESP
+-- Общий рендер
 RunService.RenderStepped:Connect(function()
-    -- Fly уже обрабатывается выше, здесь только ESP
     if espEnabledNames or espEnabledBoxes then
         updateESP()
     end
+    if aimbotEnabled then
+        updateAimbot()
+    end
 end)
 
--- Функции включения/выключения
+-- Управление переключателями
 local function refreshESP()
     clearAllESP()
     if espEnabledNames or espEnabledBoxes then
@@ -827,6 +989,12 @@ boxesToggle.MouseButton1Click:Connect(function()
     refreshESP()
 end)
 
+aimbotBtn.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    aimbotBtn.Text = "Аимбот: " .. (aimbotEnabled and "Вкл" or "Выкл")
+    aimbotBtn.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(40, 120, 60) or Color3.fromRGB(55, 55, 60)
+end)
+
 Players.PlayerAdded:Connect(function(target)
     if espEnabledNames or espEnabledBoxes then
         createESPForPlayer(target)
@@ -839,6 +1007,9 @@ end)
 
 player.CharacterAdded:Connect(function()
     refreshESP()
+    if noclipEnabled then
+        enableNoClip()
+    end
 end)
 
 ------------------------------------------------------------
