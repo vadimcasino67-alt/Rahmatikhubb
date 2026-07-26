@@ -1,6 +1,7 @@
 --[[
-    RAHMAT Menu v3 (Fly через джойстик + вертикальные кнопки)
-    Исправленная версия — вкладки работают
+    RAHMAT Menu v3 (Fly через джойстик + направление камеры)
+    Исправленная версия — вкладки работают, вертикальные кнопки удалены,
+    новые анимации, раздел Визуалы с ESP ников и хитбоксов.
 ]]
 
 local Players = game:GetService("Players")
@@ -166,7 +167,7 @@ tabLayout.Parent = tabBar
 local function createTabButton(name, text)
     local btn = Instance.new("TextButton")
     btn.Name = name
-    btn.Size = UDim2.new(0, 115, 1, 0)
+    btn.Size = UDim2.new(0, 90, 1, 0)
     btn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(220, 220, 220)
@@ -183,8 +184,9 @@ end
 
 local infoTab = createTabButton("InfoTab", "Инфо")
 local settingsTab = createTabButton("SettingsTab", "Настройки")
-local animsTab = createTabButton("AnimationsTab", "Анимации")
+local animsTab = createTabButton("AnimationsTab", "Анимки")
 local playerTab = createTabButton("PlayerTab", "Игрок")
+local visualsTab = createTabButton("VisualsTab", "Визуалы")
 
 ------------------------------------------------------------
 -- Контент
@@ -295,12 +297,12 @@ animLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 animLayout.Parent = animContainer
 
 local animList = {
-    {id = "180393100", name = "Idle"},
-    {id = "180393200", name = "Walk"},
-    {id = "180393300", name = "Run"},
-    {id = "180393400", name = "Jump"},
-    {id = "180393500", name = "Sit"},
-    {id = "180393600", name = "Dance"}
+    {id = "1083461615", name = "Zombie Idle"},
+    {id = "1083462077", name = "Zombie Walk"},
+    {id = "3360689775", name = "Cartwheel"},
+    {id = "3360963031", name = "Levitation"},
+    {id = "656118852", name = "Ninja Run"},
+    {id = "180393400", name = "Jump"}
 }
 
 local currentTrack = nil
@@ -387,63 +389,7 @@ stopBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local idFrame = Instance.new("Frame")
-idFrame.Size = UDim2.new(1, -20, 0, 36)
-idFrame.Position = UDim2.new(0, 10, 0, 205)
-idFrame.BackgroundTransparency = 1
-idFrame.Parent = animsPage
-
-local idLabel = Instance.new("TextLabel")
-idLabel.Size = UDim2.new(0, 100, 1, 0)
-idLabel.BackgroundTransparency = 1
-idLabel.Text = "ID анимации:"
-idLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-idLabel.TextXAlignment = Enum.TextXAlignment.Left
-idLabel.Font = Enum.Font.Gotham
-idLabel.TextSize = 14
-idLabel.Parent = idFrame
-
-local idBox = Instance.new("TextBox")
-idBox.Size = UDim2.new(0, 150, 1, 0)
-idBox.Position = UDim2.new(0, 105, 0, 0)
-idBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-idBox.Text = ""
-idBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-idBox.Font = Enum.Font.Gotham
-idBox.TextSize = 14
-idBox.PlaceholderText = "Введите ID"
-idBox.ClearTextOnFocus = false
-idBox.Parent = idFrame
-
-local idCorner = Instance.new("UICorner")
-idCorner.CornerRadius = UDim.new(0, 6)
-idCorner.Parent = idBox
-
-local playIdBtn = Instance.new("TextButton")
-playIdBtn.Size = UDim2.new(0, 80, 1, 0)
-playIdBtn.Position = UDim2.new(1, -85, 0, 0)
-playIdBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
-playIdBtn.Text = "Играть"
-playIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-playIdBtn.Font = Enum.Font.Gotham
-playIdBtn.TextSize = 14
-playIdBtn.Parent = idFrame
-
-local playIdCorner = Instance.new("UICorner")
-playIdCorner.CornerRadius = UDim.new(0, 6)
-playIdCorner.Parent = playIdBtn
-
-playIdBtn.MouseButton1Click:Connect(function()
-    local id = idBox.Text
-    if id ~= "" then
-        playAnimationById(id)
-        for _, child in animContainer:GetChildren() do
-            if child:IsA("TextButton") then
-                child.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
-            end
-        end
-    end
-end)
+-- Убран ввод ID анимации (idFrame и всё с ним)
 
 -- Игрок
 local playerPage = Instance.new("Frame")
@@ -579,55 +525,8 @@ createSlider(speedPanel, "Скорость полёта:", 50, 1, 500, function(
 end)
 
 ------------------------------------------------------------
--- Fly через джойстик
+-- Fly (только джойстик + камера, без вертикальных кнопок)
 ------------------------------------------------------------
-local verticalFrame = Instance.new("Frame")
-verticalFrame.Name = "FlyVertical"
-verticalFrame.Size = UDim2.new(0, 120, 0, 100)
-verticalFrame.Position = UDim2.new(0.5, 60, 1, -120)
-verticalFrame.BackgroundTransparency = 1
-verticalFrame.Visible = false
-verticalFrame.Parent = screenGui
-
-local btnUp = Instance.new("TextButton")
-btnUp.Size = UDim2.new(0, 50, 0, 50)
-btnUp.Position = UDim2.new(0, 35, 0, 0)
-btnUp.BackgroundColor3 = Color3.fromRGB(80, 120, 220)
-btnUp.Text = "▲"
-btnUp.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnUp.Font = Enum.Font.GothamBold
-btnUp.TextSize = 28
-btnUp.Parent = verticalFrame
-
-local upCorner = Instance.new("UICorner")
-upCorner.CornerRadius = UDim.new(1, 0)
-upCorner.Parent = btnUp
-
-local btnDown = Instance.new("TextButton")
-btnDown.Size = UDim2.new(0, 50, 0, 50)
-btnDown.Position = UDim2.new(0, 35, 0, 50)
-btnDown.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
-btnDown.Text = "▼"
-btnDown.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnDown.Font = Enum.Font.GothamBold
-btnDown.TextSize = 28
-btnDown.Parent = verticalFrame
-
-local downCorner = Instance.new("UICorner")
-downCorner.CornerRadius = UDim.new(1, 0)
-downCorner.Parent = btnDown
-
-local flyUp = false
-local flyDown = false
-
-btnUp.MouseButton1Down:Connect(function() flyUp = true end)
-btnUp.MouseButton1Up:Connect(function() flyUp = false end)
-btnUp.MouseLeave:Connect(function() flyUp = false end)
-
-btnDown.MouseButton1Down:Connect(function() flyDown = true end)
-btnDown.MouseButton1Up:Connect(function() flyDown = false end)
-btnDown.MouseLeave:Connect(function() flyDown = false end)
-
 local function startFly()
     updateCharacter()
     if not rootPart then return end
@@ -642,8 +541,6 @@ local function startFly()
     bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     bodyGyro.P = 10000
     bodyGyro.Parent = rootPart
-
-    verticalFrame.Visible = true
 end
 
 local function stopFly()
@@ -656,9 +553,6 @@ local function stopFly()
         bodyGyro:Destroy()
         bodyGyro = nil
     end
-    verticalFrame.Visible = false
-    flyUp = false
-    flyDown = false
 end
 
 flyBtn.MouseButton1Click:Connect(function()
@@ -673,7 +567,7 @@ flyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Обработка полёта (джойстик + вертикаль)
+-- Обработка полёта (только джойстик)
 RunService.RenderStepped:Connect(function()
     if not flying then return end
     updateCharacter()
@@ -682,16 +576,14 @@ RunService.RenderStepped:Connect(function()
     local camera = workspace.CurrentCamera
     if not camera then return end
 
-    -- Горизонталь от джойстика
     local moveDir = Vector3.new(0, 0, 0)
     if humanoid then
         local joy = humanoid.MoveDirection
         if joy.Magnitude > 0.1 then
-            local joyUnit = joy.Unit
             local forward = camera.CFrame.LookVector
             local right = camera.CFrame.RightVector
-            local fwd = joyUnit:Dot(forward)
-            local rgt = joyUnit:Dot(right)
+            local fwd = joy:Dot(forward)
+            local rgt = joy:Dot(right)
             moveDir = (forward * fwd + right * rgt)
             if moveDir.Magnitude > 0.1 then
                 moveDir = moveDir.Unit
@@ -701,25 +593,9 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Вертикаль (кнопки + клавиши Space/Shift)
-    local vert = 0
-    if flyUp or UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-        vert = 1
-    end
-    if flyDown or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-        vert = -1
-    end
-
-    local finalDir = moveDir * flySpeed + Vector3.new(0, vert * flySpeed, 0)
-    if finalDir.Magnitude > 0 then
-        bodyVelocity.Velocity = finalDir
-        if moveDir.Magnitude > 0.1 then
-            bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + moveDir)
-        else
-            bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + camera.CFrame.LookVector)
-        end
-    else
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Velocity = moveDir * flySpeed
+    if moveDir.Magnitude > 0.1 then
+        bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + moveDir)
     end
 end)
 
@@ -730,6 +606,239 @@ player.CharacterAdded:Connect(function()
         flyBtn.Text = "Fly: Выкл"
         flyBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
     end
+end)
+
+------------------------------------------------------------
+-- Визуалы (ESP ников и хитбоксов)
+------------------------------------------------------------
+local visualsPage = Instance.new("Frame")
+visualsPage.Size = UDim2.new(1, 0, 1, 0)
+visualsPage.BackgroundTransparency = 1
+visualsPage.Visible = false
+visualsPage.Parent = contentFrame
+pages.Visuals = visualsPage
+
+local visualsLabel = Instance.new("TextLabel")
+visualsLabel.Size = UDim2.new(1, -20, 0, 30)
+visualsLabel.Position = UDim2.new(0, 10, 0, 10)
+visualsLabel.BackgroundTransparency = 1
+visualsLabel.Text = "Визуалы"
+visualsLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+visualsLabel.TextXAlignment = Enum.TextXAlignment.Left
+visualsLabel.Font = Enum.Font.GothamBold
+visualsLabel.TextSize = 18
+visualsLabel.Parent = visualsPage
+
+local namesToggle = Instance.new("TextButton")
+namesToggle.Size = UDim2.new(0, 200, 0, 34)
+namesToggle.Position = UDim2.new(0, 10, 0, 50)
+namesToggle.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+namesToggle.Text = "Ники: Выкл"
+namesToggle.TextColor3 = Color3.fromRGB(230, 230, 230)
+namesToggle.Font = Enum.Font.Gotham
+namesToggle.TextSize = 14
+namesToggle.Parent = visualsPage
+
+local namesCorner = Instance.new("UICorner")
+namesCorner.CornerRadius = UDim.new(0, 8)
+namesCorner.Parent = namesToggle
+
+local boxesToggle = Instance.new("TextButton")
+boxesToggle.Size = UDim2.new(0, 200, 0, 34)
+boxesToggle.Position = UDim2.new(0, 10, 0, 94)
+boxesToggle.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+boxesToggle.Text = "Хитбоксы: Выкл"
+boxesToggle.TextColor3 = Color3.fromRGB(230, 230, 230)
+boxesToggle.Font = Enum.Font.Gotham
+boxesToggle.TextSize = 14
+boxesToggle.Parent = visualsPage
+
+local boxesCorner = Instance.new("UICorner")
+boxesCorner.CornerRadius = UDim.new(0, 8)
+boxesCorner.Parent = boxesToggle
+
+local espEnabledNames = false
+local espEnabledBoxes = false
+local espObjects = {} -- [player] = {nameTag, lines}
+
+local function clearESP(player)
+    local data = espObjects[player]
+    if data then
+        if data.nameTag then data.nameTag:Remove() end
+        if data.lines then for _, line in ipairs(data.lines) do line:Remove() end end
+        espObjects[player] = nil
+    end
+end
+
+local function clearAllESP()
+    for _, data in pairs(espObjects) do
+        if data.nameTag then data.nameTag:Remove() end
+        if data.lines then for _, line in ipairs(data.lines) do line:Remove() end end
+    end
+    table.clear(espObjects)
+end
+
+local function createESPForPlayer(target)
+    if target == player then return end
+    if espObjects[target] then clearESP(target) end
+
+    local data = {nameTag = nil, lines = {}}
+    
+    if espEnabledNames then
+        local nameTag = Drawing.new("Text")
+        nameTag.Size = 16
+        nameTag.Center = true
+        nameTag.Outline = true
+        nameTag.Color = Color3.fromRGB(255, 255, 255)
+        nameTag.Visible = false
+        data.nameTag = nameTag
+    end
+
+    if espEnabledBoxes then
+        local colors = {Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0)}
+        for i = 1, 4 do
+            local line = Drawing.new("Line")
+            line.Color = colors[i]
+            line.Thickness = 1.5
+            line.Visible = false
+            table.insert(data.lines, line)
+        end
+    end
+
+    if data.nameTag or #data.lines > 0 then
+        espObjects[target] = data
+    end
+end
+
+local function updateESP()
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+
+    for target, data in pairs(espObjects) do
+        local char = target.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local head = char and char:FindFirstChild("Head")
+        local human = char and char:FindFirstChild("Humanoid")
+
+        local visible = hrp and head and human and human.Health > 0
+
+        -- Обновление ника
+        if data.nameTag then
+            if visible then
+                local headPos = head.Position + Vector3.new(0, 0.5, 0)
+                local screenPos, onScreen = camera:WorldToViewportPoint(headPos)
+                data.nameTag.Visible = onScreen and screenPos.Z > 0
+                if data.nameTag.Visible then
+                    data.nameTag.Position = Vector2.new(screenPos.X, screenPos.Y)
+                    data.nameTag.Text = target.Name
+                end
+            else
+                data.nameTag.Visible = false
+            end
+        end
+
+        -- Обновление хитбокса
+        if #data.lines > 0 then
+            if visible then
+                local cframe = hrp.CFrame
+                local size = char:GetExtentsSize() / 2
+                local corners = {
+                    cframe * Vector3.new(-size.X, size.Y, -size.Z),
+                    cframe * Vector3.new(size.X, size.Y, -size.Z),
+                    cframe * Vector3.new(size.X, size.Y, size.Z),
+                    cframe * Vector3.new(-size.X, size.Y, size.Z),
+                    cframe * Vector3.new(-size.X, -size.Y, -size.Z),
+                    cframe * Vector3.new(size.X, -size.Y, -size.Z),
+                    cframe * Vector3.new(size.X, -size.Y, size.Z),
+                    cframe * Vector3.new(-size.X, -size.Y, size.Z)
+                }
+                local screenCorners = {}
+                local allOnScreen = true
+                for _, corner in ipairs(corners) do
+                    local screenPos, onScreen = camera:WorldToViewportPoint(corner)
+                    if not onScreen or screenPos.Z <= 0 then
+                        allOnScreen = false
+                        break
+                    end
+                    table.insert(screenCorners, screenPos)
+                end
+
+                if allOnScreen then
+                    local edges = {
+                        {1,2}, {2,3}, {3,4}, {4,1}, -- top face
+                        {5,6}, {6,7}, {7,8}, {8,5}, -- bottom face
+                        {1,5}, {2,6}, {3,7}, {4,8}  -- vertical
+                    }
+                    for i, edge in ipairs(edges) do
+                        local p1 = screenCorners[edge[1]]
+                        local p2 = screenCorners[edge[2]]
+                        data.lines[i].From = Vector2.new(p1.X, p1.Y)
+                        data.lines[i].To = Vector2.new(p2.X, p2.Y)
+                        data.lines[i].Visible = true
+                    end
+                else
+                    for _, line in ipairs(data.lines) do line.Visible = false end
+                end
+            else
+                for _, line in ipairs(data.lines) do line.Visible = false end
+            end
+        end
+    end
+end
+
+-- Подключение обновления ESP в RenderStepped (добавим к существующему)
+local function onRenderStepped()
+    if espEnabledNames or espEnabledBoxes then
+        updateESP()
+    end
+end
+
+-- Переопределим RenderStepped, добавив вызов ESP
+RunService.RenderStepped:Connect(function()
+    -- Fly уже обрабатывается выше, здесь только ESP
+    if espEnabledNames or espEnabledBoxes then
+        updateESP()
+    end
+end)
+
+-- Функции включения/выключения
+local function refreshESP()
+    clearAllESP()
+    if espEnabledNames or espEnabledBoxes then
+        for _, target in ipairs(Players:GetPlayers()) do
+            if target ~= player then
+                createESPForPlayer(target)
+            end
+        end
+    end
+end
+
+namesToggle.MouseButton1Click:Connect(function()
+    espEnabledNames = not espEnabledNames
+    namesToggle.Text = "Ники: " .. (espEnabledNames and "Вкл" or "Выкл")
+    namesToggle.BackgroundColor3 = espEnabledNames and Color3.fromRGB(40, 120, 60) or Color3.fromRGB(55, 55, 60)
+    refreshESP()
+end)
+
+boxesToggle.MouseButton1Click:Connect(function()
+    espEnabledBoxes = not espEnabledBoxes
+    boxesToggle.Text = "Хитбоксы: " .. (espEnabledBoxes and "Вкл" or "Выкл")
+    boxesToggle.BackgroundColor3 = espEnabledBoxes and Color3.fromRGB(40, 120, 60) or Color3.fromRGB(55, 55, 60)
+    refreshESP()
+end)
+
+Players.PlayerAdded:Connect(function(target)
+    if espEnabledNames or espEnabledBoxes then
+        createESPForPlayer(target)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(target)
+    clearESP(target)
+end)
+
+player.CharacterAdded:Connect(function()
+    refreshESP()
 end)
 
 ------------------------------------------------------------
@@ -747,7 +856,8 @@ local function selectTab(tabName)
         Info = infoTab,
         Settings = settingsTab,
         Animations = animsTab,
-        Player = playerTab
+        Player = playerTab,
+        Visuals = visualsTab
     }
 
     for name, btn in pairs(buttons) do
@@ -769,6 +879,10 @@ end)
 
 playerTab.MouseButton1Click:Connect(function()
     selectTab("Player")
+end)
+
+visualsTab.MouseButton1Click:Connect(function()
+    selectTab("Visuals")
 end)
 
 -- Стартовая вкладка
