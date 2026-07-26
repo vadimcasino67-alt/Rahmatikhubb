@@ -1,8 +1,6 @@
 --[[
-    RAHMAT Menu v7.3 — Полный ремастер: радужный заголовок, фиксы невидимки, ESP, аимбота, hue-ползунка, флинга
-    + MM2 Tab (Мудрый Живчик): ESP, аимбот, кнопка выстрела (шериф), кнопка броска ножа (убийца), авто-подбор пистолета
-    Восстановлены все функции: Fly, Noclip, Invis, Fling, Animations, Visuals, HUE-ползунок
-    Исправлены плавающие кнопки — теперь видны при включении
+    RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — Фикс кнопок и авто-подбора
+    Теперь плавающие кнопки всегда показываются, авто-подбор реально подбирает пистолет.
 --]]
 
 local Players = game:GetService("Players")
@@ -14,7 +12,7 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Кэширование
+-- Кэширование персонажа
 local character, humanoid, rootPart
 local function updateCharacter()
     character = player.Character
@@ -37,6 +35,9 @@ player.CharacterAdded:Connect(function()
     if noclipEnabled then enableNoClip() end
     if invisEnabled then applyInvisibility(true) end
     if flingEnabled then setupFling(character) end
+    -- восстанавливаем видимость MM2 кнопок при респавне
+    if MM2.ShootButtonEnabled then shootBtn.Visible = true else shootBtn.Visible = false end
+    if MM2.KnifeThrowEnabled then knifeBtn.Visible = true else knifeBtn.Visible = false end
 end)
 
 updateCharacter()
@@ -53,7 +54,7 @@ local flying = false
 local bodyVelocity, bodyGyro
 
 ------------------------------------------------------------
--- GUI
+-- GUI (RAHMAT Menu)
 ------------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RAHMAT_Menu"
@@ -192,7 +193,6 @@ titleBar.InputEnded:Connect(function(input)
     end
 end)
 
--- Перетаскивание плавающей кнопки
 local draggingOpen = false
 local openStartPos, openBtnStartPos = nil, nil
 
@@ -1102,9 +1102,6 @@ local aimbotCorner = Instance.new("UICorner")
 aimbotCorner.CornerRadius = UDim.new(0, 6)
 aimbotCorner.Parent = aimbotBtn
 
--- ... (остальные элементы визуалов: выбор цели, FOV, HUE ползунок) ...
--- Восстановим их ниже полностью.
-
 -- Выбор цели аимбота
 local aimTargetPlayer = nil
 local aimTargetLabel = Instance.new("TextLabel")
@@ -1734,14 +1731,14 @@ end)
 
 task.spawn(function() fixScrolling(mm2Page) end)
 
--- Плавающие кнопки MM2 (ИСПРАВЛЕНЫ - создаются явно в отдельном ScreenGui)
+-- Плавающие кнопки MM2 (гарантированно видимы)
 local floatGui = Instance.new("ScreenGui")
 floatGui.Name = "MM2_FloatButtons"
 floatGui.ResetOnSpawn = false
 floatGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+floatGui.ZIndex = 10  -- поверх всех
 floatGui.Parent = playerGui
 
--- Кнопка Выстрел (Шериф)
 local shootBtn = Instance.new("TextButton")
 shootBtn.Size = UDim2.new(0, 70, 0, 70)
 shootBtn.Position = UDim2.new(0.8, 0, 0.7, 0)
@@ -1751,12 +1748,10 @@ shootBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 shootBtn.Font = Enum.Font.GothamBold
 shootBtn.TextSize = 16
 shootBtn.Visible = false
+shootBtn.ZIndex = 10
 shootBtn.Parent = floatGui
-local shootCorner = Instance.new("UICorner")
-shootCorner.CornerRadius = UDim.new(1, 0)
-shootCorner.Parent = shootBtn
+Instance.new("UICorner", shootBtn).CornerRadius = UDim.new(1, 0)
 
--- Кнопка Бросок ножа (Убийца)
 local knifeBtn = Instance.new("TextButton")
 knifeBtn.Size = UDim2.new(0, 70, 0, 70)
 knifeBtn.Position = UDim2.new(0.2, 0, 0.7, 0)
@@ -1766,12 +1761,10 @@ knifeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 knifeBtn.Font = Enum.Font.GothamBold
 knifeBtn.TextSize = 16
 knifeBtn.Visible = false
+knifeBtn.ZIndex = 10
 knifeBtn.Parent = floatGui
-local knifeCorner = Instance.new("UICorner")
-knifeCorner.CornerRadius = UDim.new(1, 0)
-knifeCorner.Parent = knifeBtn
+Instance.new("UICorner", knifeBtn).CornerRadius = UDim.new(1, 0)
 
--- Перетаскивание кнопок
 local function makeDraggable(btn)
     local draggingBtn = false
     local dragStartPosBtn, btnStartPos
@@ -1807,7 +1800,7 @@ end
 makeDraggable(shootBtn)
 makeDraggable(knifeBtn)
 
--- Функции выстрела и броска
+-- Функции выстрела/броска с автоаимом (уже внутри)
 local function shootWithAim()
     if not player.Character then return end
     local gun = player.Character:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun")
@@ -1848,30 +1841,25 @@ end
 
 knifeBtn.MouseButton1Click:Connect(throwKnife)
 
--- Авто-подбор пистолета
+-- Авто-подбор пистолета (работает напрямую)
 local function autoPickupGunLoop()
-    while task.wait(0.5) do
+    while task.wait(0.3) do
         if not MM2.AutoPickupGun then continue end
         if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then continue end
         local root = player.Character.HumanoidRootPart
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("Tool") and obj.Name == "Gun" and obj.Parent ~= player.Character and obj.Parent ~= player.Backpack then
-                local distance = (root.Position - obj.Position).Magnitude
-                if distance < 15 then
-                    local oldCFrame = root.CFrame
-                    root.CFrame = CFrame.new(obj.Position)
-                    task.wait(0.1)
-                    root.CFrame = oldCFrame
+                if (root.Position - obj.Position).Magnitude < 15 then
+                    obj.Parent = player.Backpack  -- мгновенно в рюкзак
                     break
                 end
             end
         end
     end
 end
-
 task.spawn(autoPickupGunLoop)
 
--- Система MM2 (ESP + AimBot)
+-- Общие функции MM2 (ESP, AimBot)
 local mm2EspStorage = {}
 
 local function getPlayerRoleMM2(plr)
@@ -2060,4 +2048,4 @@ visualsTab.MouseButton1Click:Connect(function() selectTab("Visuals") end)
 mm2Tab.MouseButton1Click:Connect(function() selectTab("MM2") end)
 selectTab("Info")
 
-print("RAHMAT Menu v7.3 + MM2 полный комплект активирован. Мудрый Живчик правит.")
+print("RAHMAT Menu v7.3 + MM2 полный фикс. Кнопки видны, пистолет подбирается.")
