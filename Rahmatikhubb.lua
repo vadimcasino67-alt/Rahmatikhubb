@@ -1,5 +1,6 @@
 --[[
     RAHMAT Menu v3 (Fly через джойстик + вертикальные кнопки)
+    Исправленная версия — вкладки работают
 ]]
 
 local Players = game:GetService("Players")
@@ -20,14 +21,16 @@ local function updateCharacter()
         rootPart = nil
     end
 end
+
 player.CharacterAdded:Connect(function()
     updateCharacter()
-    wait(0.5)
+    task.wait(0.5)
     if humanoid then
         humanoid.WalkSpeed = savedWalkSpeed
         humanoid.JumpPower = savedJumpPower
     end
 end)
+
 updateCharacter()
 if humanoid then
     humanoid.WalkSpeed = 16
@@ -58,6 +61,7 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 34)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = true
 mainFrame.Parent = screenGui
+
 local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(0, 12)
 uiCorner.Parent = mainFrame
@@ -68,6 +72,7 @@ titleBar.Size = UDim2.new(1, 0, 0, 44)
 titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
+
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 12)
 titleCorner.Parent = titleBar
@@ -93,6 +98,7 @@ closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 16
 closeButton.Parent = titleBar
+
 local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeButton
@@ -108,9 +114,11 @@ openButton.Font = Enum.Font.GothamBold
 openButton.TextSize = 22
 openButton.Visible = false
 openButton.Parent = screenGui
+
 local openCorner = Instance.new("UICorner")
 openCorner.CornerRadius = UDim.new(1, 0)
 openCorner.Parent = openButton
+
 local openStroke = Instance.new("UIStroke")
 openStroke.Color = Color3.fromRGB(255, 255, 255)
 openStroke.Thickness = 2
@@ -121,17 +129,23 @@ local function openMenu()
     mainFrame.Visible = true
     openButton.Visible = false
 end
+
 local function closeMenu()
     mainFrame.Visible = false
     openButton.Visible = true
 end
+
 closeButton.MouseButton1Click:Connect(closeMenu)
 openButton.MouseButton1Click:Connect(openMenu)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.RightShift then
-        if mainFrame.Visible then closeMenu() else openMenu() end
+        if mainFrame.Visible then
+            closeMenu()
+        else
+            openMenu()
+        end
     end
 end)
 
@@ -143,6 +157,7 @@ tabBar.Size = UDim2.new(1, -20, 0, 36)
 tabBar.Position = UDim2.new(0, 10, 0, 54)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = mainFrame
+
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.FillDirection = Enum.FillDirection.Horizontal
 tabLayout.Padding = UDim.new(0, 6)
@@ -158,9 +173,11 @@ local function createTabButton(name, text)
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 14
     btn.Parent = tabBar
+
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = btn
+
     return btn
 end
 
@@ -178,6 +195,7 @@ contentFrame.Position = UDim2.new(0, 10, 0, 98)
 contentFrame.BackgroundColor3 = Color3.fromRGB(38, 38, 42)
 contentFrame.BorderSizePixel = 0
 contentFrame.Parent = mainFrame
+
 local contentCorner = Instance.new("UICorner")
 contentCorner.CornerRadius = UDim.new(0, 10)
 contentCorner.Parent = contentFrame
@@ -191,6 +209,7 @@ infoPage.BackgroundTransparency = 1
 infoPage.Visible = true
 infoPage.Parent = contentFrame
 pages.Info = infoPage
+
 local infoLabel = Instance.new("TextLabel")
 infoLabel.Size = UDim2.new(1, -20, 1, -20)
 infoLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -211,6 +230,7 @@ settingsPage.BackgroundTransparency = 1
 settingsPage.Visible = false
 settingsPage.Parent = contentFrame
 pages.Settings = settingsPage
+
 local settingsLabel = Instance.new("TextLabel")
 settingsLabel.Size = UDim2.new(1, -20, 0, 30)
 settingsLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -221,6 +241,7 @@ settingsLabel.TextXAlignment = Enum.TextXAlignment.Left
 settingsLabel.Font = Enum.Font.GothamBold
 settingsLabel.TextSize = 18
 settingsLabel.Parent = settingsPage
+
 local exampleToggle = Instance.new("TextButton")
 exampleToggle.Size = UDim2.new(0, 200, 0, 34)
 exampleToggle.Position = UDim2.new(0, 10, 0, 50)
@@ -230,9 +251,11 @@ exampleToggle.TextColor3 = Color3.fromRGB(230, 230, 230)
 exampleToggle.Font = Enum.Font.Gotham
 exampleToggle.TextSize = 14
 exampleToggle.Parent = settingsPage
+
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 8)
 toggleCorner.Parent = exampleToggle
+
 local toggleState = false
 exampleToggle.MouseButton1Click:Connect(function()
     toggleState = not toggleState
@@ -246,6 +269,7 @@ animsPage.BackgroundTransparency = 1
 animsPage.Visible = false
 animsPage.Parent = contentFrame
 pages.Animations = animsPage
+
 local animsLabel = Instance.new("TextLabel")
 animsLabel.Size = UDim2.new(1, -20, 0, 30)
 animsLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -262,11 +286,11 @@ animContainer.Size = UDim2.new(1, -20, 0, 150)
 animContainer.Position = UDim2.new(0, 10, 0, 45)
 animContainer.BackgroundTransparency = 1
 animContainer.Parent = animsPage
+
 local animLayout = Instance.new("UIListLayout")
 animLayout.FillDirection = Enum.FillDirection.Horizontal
-animLayout.Wrap = true
+animLayout.Wraps = true
 animLayout.Padding = UDim.new(0, 8)
-animLayout.Spacing = UDim.new(0, 8)
 animLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 animLayout.Parent = animContainer
 
@@ -278,6 +302,7 @@ local animList = {
     {id = "180393500", name = "Sit"},
     {id = "180393600", name = "Dance"}
 }
+
 local currentTrack = nil
 
 local function getAnimator()
@@ -318,9 +343,11 @@ local function createAnimButton(parent, animData)
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 14
     btn.Parent = parent
+
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = btn
+
     btn.MouseButton1Click:Connect(function()
         playAnimationById(animData.id)
         for _, child in parent:GetChildren() do
@@ -330,6 +357,7 @@ local function createAnimButton(parent, animData)
         end
         btn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
     end)
+
     return btn
 end
 
@@ -345,9 +373,11 @@ stopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 stopBtn.Font = Enum.Font.GothamBold
 stopBtn.TextSize = 14
 stopBtn.Parent = animContainer
+
 local stopCorner = Instance.new("UICorner")
 stopCorner.CornerRadius = UDim.new(0, 8)
 stopCorner.Parent = stopBtn
+
 stopBtn.MouseButton1Click:Connect(function()
     stopAllAnimations()
     for _, child in animContainer:GetChildren() do
@@ -362,6 +392,7 @@ idFrame.Size = UDim2.new(1, -20, 0, 36)
 idFrame.Position = UDim2.new(0, 10, 0, 205)
 idFrame.BackgroundTransparency = 1
 idFrame.Parent = animsPage
+
 local idLabel = Instance.new("TextLabel")
 idLabel.Size = UDim2.new(0, 100, 1, 0)
 idLabel.BackgroundTransparency = 1
@@ -371,6 +402,7 @@ idLabel.TextXAlignment = Enum.TextXAlignment.Left
 idLabel.Font = Enum.Font.Gotham
 idLabel.TextSize = 14
 idLabel.Parent = idFrame
+
 local idBox = Instance.new("TextBox")
 idBox.Size = UDim2.new(0, 150, 1, 0)
 idBox.Position = UDim2.new(0, 105, 0, 0)
@@ -382,9 +414,11 @@ idBox.TextSize = 14
 idBox.PlaceholderText = "Введите ID"
 idBox.ClearTextOnFocus = false
 idBox.Parent = idFrame
+
 local idCorner = Instance.new("UICorner")
 idCorner.CornerRadius = UDim.new(0, 6)
 idCorner.Parent = idBox
+
 local playIdBtn = Instance.new("TextButton")
 playIdBtn.Size = UDim2.new(0, 80, 1, 0)
 playIdBtn.Position = UDim2.new(1, -85, 0, 0)
@@ -394,9 +428,11 @@ playIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 playIdBtn.Font = Enum.Font.Gotham
 playIdBtn.TextSize = 14
 playIdBtn.Parent = idFrame
+
 local playIdCorner = Instance.new("UICorner")
 playIdCorner.CornerRadius = UDim.new(0, 6)
 playIdCorner.Parent = playIdBtn
+
 playIdBtn.MouseButton1Click:Connect(function()
     local id = idBox.Text
     if id ~= "" then
@@ -416,6 +452,7 @@ playerPage.BackgroundTransparency = 1
 playerPage.Visible = false
 playerPage.Parent = contentFrame
 pages.Player = playerPage
+
 local playerLabel = Instance.new("TextLabel")
 playerLabel.Size = UDim2.new(1, -20, 0, 30)
 playerLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -426,6 +463,7 @@ playerLabel.TextXAlignment = Enum.TextXAlignment.Left
 playerLabel.Font = Enum.Font.GothamBold
 playerLabel.TextSize = 18
 playerLabel.Parent = playerPage
+
 local playerInfo = Instance.new("TextLabel")
 playerInfo.Size = UDim2.new(1, -20, 0, 60)
 playerInfo.Position = UDim2.new(0, 10, 0, 45)
@@ -448,6 +486,7 @@ flyBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
 flyBtn.Font = Enum.Font.GothamBold
 flyBtn.TextSize = 15
 flyBtn.Parent = playerPage
+
 local flyCorner = Instance.new("UICorner")
 flyCorner.CornerRadius = UDim.new(0, 8)
 flyCorner.Parent = flyBtn
@@ -458,6 +497,7 @@ speedPanel.Size = UDim2.new(1, -20, 0, 180)
 speedPanel.Position = UDim2.new(0, 10, 0, 170)
 speedPanel.BackgroundTransparency = 1
 speedPanel.Parent = playerPage
+
 local speedLayout = Instance.new("UIListLayout")
 speedLayout.FillDirection = Enum.FillDirection.Vertical
 speedLayout.Padding = UDim.new(0, 8)
@@ -469,6 +509,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     row.Size = UDim2.new(1, 0, 0, 30)
     row.BackgroundTransparency = 1
     row.Parent = parent
+
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(0, 140, 1, 0)
     lbl.BackgroundTransparency = 1
@@ -478,6 +519,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     lbl.Font = Enum.Font.Gotham
     lbl.TextSize = 14
     lbl.Parent = row
+
     local box = Instance.new("TextBox")
     box.Size = UDim2.new(0, 80, 1, 0)
     box.Position = UDim2.new(0, 145, 0, 0)
@@ -489,9 +531,11 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     box.PlaceholderText = "0"
     box.ClearTextOnFocus = false
     box.Parent = row
+
     local boxCorner = Instance.new("UICorner")
     boxCorner.CornerRadius = UDim.new(0, 6)
     boxCorner.Parent = box
+
     local applyBtn = Instance.new("TextButton")
     applyBtn.Size = UDim2.new(0, 70, 1, 0)
     applyBtn.Position = UDim2.new(1, -75, 0, 0)
@@ -501,9 +545,11 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     applyBtn.Font = Enum.Font.Gotham
     applyBtn.TextSize = 13
     applyBtn.Parent = row
+
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 6)
     btnCorner.Parent = applyBtn
+
     applyBtn.MouseButton1Click:Connect(function()
         local val = tonumber(box.Text)
         if val then
@@ -514,6 +560,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
             box.Text = tostring(defaultVal)
         end
     end)
+
     return row
 end
 
@@ -521,10 +568,12 @@ createSlider(speedPanel, "Скорость ходьбы:", 16, 0, 100, function(
     savedWalkSpeed = v
     if humanoid then humanoid.WalkSpeed = v end
 end)
+
 createSlider(speedPanel, "Сила прыжка:", 50, 0, 200, function(v)
     savedJumpPower = v
     if humanoid then humanoid.JumpPower = v end
 end)
+
 createSlider(speedPanel, "Скорость полёта:", 50, 1, 500, function(v)
     flySpeed = v
 end)
@@ -532,11 +581,10 @@ end)
 ------------------------------------------------------------
 -- Fly через джойстик
 ------------------------------------------------------------
--- Вертикальные кнопки (Android)
 local verticalFrame = Instance.new("Frame")
 verticalFrame.Name = "FlyVertical"
 verticalFrame.Size = UDim2.new(0, 120, 0, 100)
-verticalFrame.Position = UDim2.new(0.5, 60, 1, -120) -- справа внизу
+verticalFrame.Position = UDim2.new(0.5, 60, 1, -120)
 verticalFrame.BackgroundTransparency = 1
 verticalFrame.Visible = false
 verticalFrame.Parent = screenGui
@@ -550,6 +598,7 @@ btnUp.TextColor3 = Color3.fromRGB(255, 255, 255)
 btnUp.Font = Enum.Font.GothamBold
 btnUp.TextSize = 28
 btnUp.Parent = verticalFrame
+
 local upCorner = Instance.new("UICorner")
 upCorner.CornerRadius = UDim.new(1, 0)
 upCorner.Parent = btnUp
@@ -563,6 +612,7 @@ btnDown.TextColor3 = Color3.fromRGB(255, 255, 255)
 btnDown.Font = Enum.Font.GothamBold
 btnDown.TextSize = 28
 btnDown.Parent = verticalFrame
+
 local downCorner = Instance.new("UICorner")
 downCorner.CornerRadius = UDim.new(1, 0)
 downCorner.Parent = btnDown
@@ -573,6 +623,7 @@ local flyDown = false
 btnUp.MouseButton1Down:Connect(function() flyUp = true end)
 btnUp.MouseButton1Up:Connect(function() flyUp = false end)
 btnUp.MouseLeave:Connect(function() flyUp = false end)
+
 btnDown.MouseButton1Down:Connect(function() flyDown = true end)
 btnDown.MouseButton1Up:Connect(function() flyDown = false end)
 btnDown.MouseLeave:Connect(function() flyDown = false end)
@@ -581,6 +632,7 @@ local function startFly()
     updateCharacter()
     if not rootPart then return end
     flying = true
+
     bodyVelocity = Instance.new("BodyVelocity")
     bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     bodyVelocity.Velocity = Vector3.new(0, 0, 0)
@@ -596,8 +648,14 @@ end
 
 local function stopFly()
     flying = false
-    if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
-    if bodyGyro then bodyGyro:Destroy(); bodyGyro = nil end
+    if bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
+    end
+    if bodyGyro then
+        bodyGyro:Destroy()
+        bodyGyro = nil
+    end
     verticalFrame.Visible = false
     flyUp = false
     flyDown = false
@@ -620,6 +678,7 @@ RunService.RenderStepped:Connect(function()
     if not flying then return end
     updateCharacter()
     if not rootPart or not bodyVelocity or not bodyGyro then return end
+
     local camera = workspace.CurrentCamera
     if not camera then return end
 
@@ -631,7 +690,6 @@ RunService.RenderStepped:Connect(function()
             local joyUnit = joy.Unit
             local forward = camera.CFrame.LookVector
             local right = camera.CFrame.RightVector
-            -- Проецируем направление джойстика на плоскость камеры
             local fwd = joyUnit:Dot(forward)
             local rgt = joyUnit:Dot(right)
             moveDir = (forward * fwd + right * rgt)
@@ -645,13 +703,16 @@ RunService.RenderStepped:Connect(function()
 
     -- Вертикаль (кнопки + клавиши Space/Shift)
     local vert = 0
-    if flyUp or UserInputService:IsKeyDown(Enum.KeyCode.Space) then vert = 1 end
-    if flyDown or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then vert = -1 end
+    if flyUp or UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+        vert = 1
+    end
+    if flyDown or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+        vert = -1
+    end
 
     local finalDir = moveDir * flySpeed + Vector3.new(0, vert * flySpeed, 0)
     if finalDir.Magnitude > 0 then
         bodyVelocity.Velocity = finalDir
-        -- Ориентация по направлению движения
         if moveDir.Magnitude > 0.1 then
             bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + moveDir)
         else
@@ -662,7 +723,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Отключаем Fly при смерти
+-- Отключаем Fly при смерти / респавне
 player.CharacterAdded:Connect(function()
     if flying then
         stopFly()
@@ -681,15 +742,34 @@ local function selectTab(tabName)
     for name, page in pairs(pages) do
         page.Visible = (name == tabName)
     end
-    local buttons = {Info=infoTab, Settings=settingsTab, Animations=animsTab, Player=playerTab}
+
+    local buttons = {
+        Info = infoTab,
+        Settings = settingsTab,
+        Animations = animsTab,
+        Player = playerTab
+    }
+
     for name, btn in pairs(buttons) do
         btn.BackgroundColor3 = (name == tabName) and activeColor or inactiveColor
     end
 end
 
-infoTab.MouseButton1Click:Connect(function() selectTab("Info") end)
-settingsTab.MouseButton1Click:Connect(function() selectTab("Settings") end)
-animsTab.MouseButton1Click:Connect(function() selectTab("Animations") end)
-playerTab.MouseButton1Click:Connect(function() selectTab("Player") end)
+infoTab.MouseButton1Click:Connect(function()
+    selectTab("Info")
+end)
 
+settingsTab.MouseButton1Click:Connect(function()
+    selectTab("Settings")
+end)
+
+animsTab.MouseButton1Click:Connect(function()
+    selectTab("Animations")
+end)
+
+playerTab.MouseButton1Click:Connect(function()
+    selectTab("Player")
+end)
+
+-- Стартовая вкладка
 selectTab("Info")
