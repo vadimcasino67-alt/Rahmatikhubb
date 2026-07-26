@@ -1,7 +1,7 @@
 --[[
-    RAHMAT Menu v6
-    Все вкладки скроллятся, аимбот с выбором цели (список игроков обновляется),
-    FOV-кольцо + маркер цели, цвет меню через Hue-ползунок.
+    RAHMAT Menu v7
+    Тонкое FOV-кольцо, починен скроллинг (не выбрасывает наверх),
+    цвет меню через Hue-ползунок.
 ]]
 
 local Players = game:GetService("Players")
@@ -207,7 +207,7 @@ contentCorner.Parent = contentFrame
 
 local pages = {}
 
--- Функция создания ScrollingFrame (теперь для всех вкладок)
+-- Функция создания ScrollingFrame
 local function createScrollPage()
     local sf = Instance.new("ScrollingFrame")
     sf.Size = UDim2.new(1, 0, 1, 0)
@@ -218,6 +218,7 @@ local function createScrollPage()
     sf.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
     sf.Parent = contentFrame
     sf.Visible = false
+    sf.CanvasPosition = Vector2.new(0, 0)
 
     local uiListLayout = Instance.new("UIListLayout")
     uiListLayout.Padding = UDim.new(0, 5)
@@ -226,6 +227,19 @@ local function createScrollPage()
     uiListLayout.Parent = sf
 
     return sf
+end
+
+-- Сохранение позиций скролла для предотвращения прыжков
+local lastScrollPositions = {}
+
+local function saveScrollPosition(page)
+    lastScrollPositions[page] = page.CanvasPosition
+end
+
+local function restoreScrollPosition(page)
+    if lastScrollPositions[page] then
+        page.CanvasPosition = lastScrollPositions[page]
+    end
 end
 
 -- Инфо
@@ -712,7 +726,7 @@ player.CharacterAdded:Connect(function()
 end)
 
 ------------------------------------------------------------
--- Визуалы + Аимбот (выбор цели, FOV, маркер, цвет меню)
+-- Визуалы + Аимбот
 ------------------------------------------------------------
 local visualsPage = createScrollPage()
 visualsPage.Visible = false
@@ -797,7 +811,7 @@ targetDropdownCorner.Parent = targetDropdownBtn
 
 local targetListFrame = Instance.new("ScrollingFrame")
 targetListFrame.Size = UDim2.new(0, 200, 0, 100)
-targetListFrame.Position = UDim2.new(0, targetDropdownBtn.Position.X.Offset + 210, 0, targetDropdownBtn.Position.Y.Offset + 35)
+targetListFrame.Position = UDim2.new(0, 0, 0, 35) -- относительное
 targetListFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
 targetListFrame.BorderSizePixel = 0
 targetListFrame.Visible = false
@@ -805,17 +819,26 @@ targetListFrame.ZIndex = 10
 targetListFrame.ScrollBarThickness = 4
 targetListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 targetListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-targetListFrame.Parent = visualsPage
+targetListFrame.Parent = targetDropdownBtn -- вложим в кнопку, чтобы позиционировалось относительно неё? Упростим: положим прямо в visualsPage с абсолютной позицией, но тогда при скролле вкладки будет смещаться. Лучше сделать отдельный Frame-контейнер. Переделаем: создадим Frame, содержащий кнопку и список, чтобы они были на одном уровне. Сделаем обёртку targetFrame и в нём расположим кнопку и список. Это обеспечит корректное положение при скролле.
+-- Переделаем:
+local targetContainer = Instance.new("Frame")
+targetContainer.Size = UDim2.new(0, 200, 0, 30)
+targetContainer.BackgroundTransparency = 1
+targetContainer.Parent = visualsPage
 
-local targetListLayout = Instance.new("UIListLayout")
-targetListLayout.Padding = UDim.new(0, 2)
-targetListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-targetListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-targetListLayout.Parent = targetListFrame
+targetDropdownBtn.Parent = targetContainer
+targetDropdownBtn.Size = UDim2.new(1, 0, 1, 0)
+targetDropdownBtn.Position = UDim2.new(0, 0, 0, 0)
 
--- Список игроков для выпадашки
-local aimTargetPlayer = nil  -- nil = все, иначе Player
+targetListFrame.Parent = targetContainer
+targetListFrame.Size = UDim2.new(1, 0, 0, 100)
+targetListFrame.Position = UDim2.new(0, 0, 1, 2) -- под кнопкой
+targetListFrame.ZIndex = 10
+
+local aimTargetPlayer = nil
+
 local function updateTargetList()
+    local oldPos = targetListFrame.CanvasPosition
     -- Очищаем
     for _, child in ipairs(targetListFrame:GetChildren()) do
         if child:IsA("TextButton") then
@@ -867,6 +890,7 @@ local function updateTargetList()
             end)
         end
     end
+    targetListFrame.CanvasPosition = oldPos
 end
 
 targetDropdownBtn.MouseButton1Click:Connect(function()
@@ -876,28 +900,24 @@ targetDropdownBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Автообновление списка при изменении игроков
 Players.PlayerAdded:Connect(function()
-    if targetListFrame.Visible then
-        updateTargetList()
-    end
+    if targetListFrame.Visible then updateTargetList() end
 end)
 Players.PlayerRemoving:Connect(function(p)
     if aimTargetPlayer == p then
         aimTargetPlayer = nil
         targetDropdownBtn.Text = "Все"
     end
-    if targetListFrame.Visible then
-        updateTargetList()
-    end
+    if targetListFrame.Visible then updateTargetList() end
 end)
 updateTargetList()
 
--- FOV кольцо
+-- FOV кольцо (тонкое, без заливки)
 local fovCircle = Drawing.new("Circle")
 fovCircle.Color = Color3.fromRGB(255, 255, 255)
-fovCircle.Thickness = 1
-fovCircle.Transparency = 0.8
+fovCircle.Thickness = 2
+fovCircle.Transparency = 0.3
+fovCircle.Filled = false
 fovCircle.Visible = false
 fovCircle.Radius = 100
 
@@ -960,55 +980,65 @@ targetMarker.Radius = 8
 local hueLabel = Instance.new("TextLabel")
 hueLabel.Size = UDim2.new(1, -20, 0, 20)
 hueLabel.BackgroundTransparency = 1
-hueLabel.Text = "Оттенок меню (0-360):"
+hueLabel.Text = "Оттенок меню:"
 hueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 hueLabel.TextXAlignment = Enum.TextXAlignment.Left
 hueLabel.Font = Enum.Font.Gotham
 hueLabel.TextSize = 14
 hueLabel.Parent = visualsPage
 
-local hueRow = Instance.new("Frame")
-hueRow.Size = UDim2.new(1, -20, 0, 30)
-hueRow.BackgroundTransparency = 1
-hueRow.Parent = visualsPage
+-- Ползунок Hue
+local hueSliderTrack = Instance.new("Frame")
+hueSliderTrack.Size = UDim2.new(0, 200, 0, 20)
+hueSliderTrack.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+hueSliderTrack.BorderSizePixel = 0
+hueSliderTrack.Parent = visualsPage
 
-local hueBox = Instance.new("TextBox")
-hueBox.Size = UDim2.new(0, 80, 1, 0)
-hueBox.Position = UDim2.new(0, 0, 0, 0)
-hueBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-hueBox.Text = "0"
-hueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-hueBox.Font = Enum.Font.Gotham
-hueBox.TextSize = 14
-hueBox.Parent = hueRow
+local hueSliderFill = Instance.new("Frame")
+hueSliderFill.Size = UDim2.new(0, 0, 1, 0)
+hueSliderFill.BackgroundColor3 = Color3.fromRGB(80, 120, 220)
+hueSliderFill.BorderSizePixel = 0
+hueSliderFill.Parent = hueSliderTrack
 
-local hueApply = Instance.new("TextButton")
-hueApply.Size = UDim2.new(0, 70, 1, 0)
-hueApply.Position = UDim2.new(0, 85, 0, 0)
-hueApply.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
-hueApply.Text = "Прим."
-hueApply.TextColor3 = Color3.fromRGB(255, 255, 255)
-hueApply.Font = Enum.Font.Gotham
-hueApply.TextSize = 13
-hueApply.Parent = hueRow
+local hueThumb = Instance.new("Frame")
+hueThumb.Size = UDim2.new(0, 12, 1, 0)
+hueThumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+hueThumb.BorderSizePixel = 0
+hueThumb.Parent = hueSliderTrack
 
-local function HSVtoRGB(h, s, v)
-    h = h % 360
-    local c = v * s
-    local x = c * (1 - math.abs((h / 60) % 2 - 1))
-    local m = v - c
-    local r, g, b = 0, 0, 0
-    if h < 60 then r, g, b = c, x, 0
-    elseif h < 120 then r, g, b = x, c, 0
-    elseif h < 180 then r, g, b = 0, c, x
-    elseif h < 240 then r, g, b = 0, x, c
-    elseif h < 300 then r, g, b = x, 0, c
-    else r, g, b = c, 0, x end
-    return Color3.fromRGB((r + m) * 255, (g + m) * 255, (b + m) * 255)
+local hueThumbCorner = Instance.new("UICorner")
+hueThumbCorner.CornerRadius = UDim.new(0, 4)
+hueThumbCorner.Parent = hueThumb
+
+local hueValue = 0
+local isDraggingHue = false
+
+local function updateHueFromPosition(x)
+    local trackWidth = 200
+    local relativeX = math.clamp(x - hueSliderTrack.AbsolutePosition.X, 0, trackWidth)
+    local fraction = relativeX / trackWidth
+    hueValue = fraction * 360
+    hueThumb.Position = UDim2.new(fraction, -6, 0, 0)
+    hueSliderFill.Size = UDim2.new(fraction, 0, 1, 0)
+    applyHue(hueValue)
 end
 
 local function applyHue(hue)
-    local mainColor = HSVtoRGB(hue, 0.4, 0.3)  -- основной фон
+    local function HSVtoRGB(h, s, v)
+        h = h % 360
+        local c = v * s
+        local x = c * (1 - math.abs((h / 60) % 2 - 1))
+        local m = v - c
+        local r, g, b = 0, 0, 0
+        if h < 60 then r, g, b = c, x, 0
+        elseif h < 120 then r, g, b = x, c, 0
+        elseif h < 180 then r, g, b = 0, c, x
+        elseif h < 240 then r, g, b = 0, x, c
+        elseif h < 300 then r, g, b = x, 0, c
+        else r, g, b = c, 0, x end
+        return Color3.fromRGB((r + m) * 255, (g + m) * 255, (b + m) * 255)
+    end
+    local mainColor = HSVtoRGB(hue, 0.4, 0.3)
     local titleColor = HSVtoRGB(hue, 0.5, 0.25)
     local contentColor = HSVtoRGB(hue, 0.3, 0.4)
     mainFrame.BackgroundColor3 = mainColor
@@ -1016,12 +1046,28 @@ local function applyHue(hue)
     contentFrame.BackgroundColor3 = contentColor
 end
 
-hueApply.MouseButton1Click:Connect(function()
-    local val = tonumber(hueBox.Text)
-    if val then
-        val = math.clamp(val, 0, 360)
-        hueBox.Text = tostring(val)
-        applyHue(val)
+hueThumb.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDraggingHue = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDraggingHue = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isDraggingHue and input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateHueFromPosition(input.Position.X)
+    end
+end)
+
+hueSliderTrack.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        updateHueFromPosition(input.Position.X)
+        isDraggingHue = true
     end
 end)
 
@@ -1162,7 +1208,6 @@ local function getAimTarget()
     local screenCenter = camera.ViewportSize / 2
 
     if aimTargetPlayer then
-        -- Конкретный игрок
         local char = aimTargetPlayer.Character
         local head = char and char:FindFirstChild("Head")
         if head and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
@@ -1176,7 +1221,6 @@ local function getAimTarget()
         end
         return nil
     else
-        -- Все (ближайший)
         local closestHead = nil
         local shortestDist = fovRadius
         local ray = camera:ScreenPointToRay(screenCenter.X, screenCenter.Y)
@@ -1220,9 +1264,7 @@ local function updateAimbot()
 
     local targetHead = getAimTarget()
     if targetHead then
-        -- Наводим камеру
         camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
-        -- Рисуем маркер на голове
         local headPos = targetHead.Position
         local screenPos, onScreen = camera:WorldToViewportPoint(headPos)
         if onScreen and screenPos.Z > 0 then
@@ -1294,14 +1336,22 @@ player.CharacterAdded:Connect(function()
 end)
 
 ------------------------------------------------------------
--- Переключение вкладок
+-- Переключение вкладок (с сохранением позиций скролла)
 ------------------------------------------------------------
 local activeColor = Color3.fromRGB(80, 120, 220)
 local inactiveColor = Color3.fromRGB(45, 45, 50)
+local currentTab = "Info"
 
 local function selectTab(tabName)
+    if pages[currentTab] then
+        saveScrollPosition(pages[currentTab])
+    end
     for name, page in pairs(pages) do
         page.Visible = (name == tabName)
+    end
+    currentTab = tabName
+    if pages[currentTab] then
+        restoreScrollPosition(pages[currentTab])
     end
 
     local buttons = {
@@ -1311,7 +1361,6 @@ local function selectTab(tabName)
         Player = playerTab,
         Visuals = visualsTab
     }
-
     for name, btn in pairs(buttons) do
         btn.BackgroundColor3 = (name == tabName) and activeColor or inactiveColor
     end
