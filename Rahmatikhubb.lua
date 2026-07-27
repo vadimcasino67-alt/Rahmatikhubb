@@ -2017,7 +2017,7 @@ player.CharacterAdded:Connect(function()
     refreshESP()
     if noclipEnabled then enableNoClip() end
     if invisEnabled then applyInvisibility(true) end
-end)л
+end)
 
 Players.PlayerAdded:Connect(function(target)
     if espEnabledNames or espEnabledBoxes then createESPForPlayer(target) end
