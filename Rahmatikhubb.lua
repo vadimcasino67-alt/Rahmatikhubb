@@ -1,6 +1,7 @@
 --[[
     RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — Фикс кнопок и авто-подбора
     Теперь плавающие кнопки всегда показываются, авто-подбор реально подбирает пистолет.
+    ФИКС ВКЛАДОК ДЛЯ ТАЧА: заменил MouseButton1Click на Activated
 --]]
 
 local Players = game:GetService("Players")
@@ -2025,7 +2026,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
--- ================== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==================
+-- ================== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (ФИКС ДЛЯ ТАЧА) ==================
 local activeColor = Color3.fromRGB(123, 97, 255)
 local inactiveColor = Color3.fromRGB(40, 40, 46)
 
@@ -2040,12 +2041,14 @@ local function selectTab(tabName)
     end
 end
 
-infoTab.MouseButton1Click:Connect(function() selectTab("Info") end)
-settingsTab.MouseButton1Click:Connect(function() selectTab("Settings") end)
-animsTab.MouseButton1Click:Connect(function() selectTab("Animations") end)
-playerTab.MouseButton1Click:Connect(function() selectTab("Player") end)
-visualsTab.MouseButton1Click:Connect(function() selectTab("Visuals") end)
-mm2Tab.MouseButton1Click:Connect(function() selectTab("MM2") end)
+-- Используем Activated, чтобы работало и на ПК и на телефоне
+infoTab.Activated:Connect(function() selectTab("Info") end)
+settingsTab.Activated:Connect(function() selectTab("Settings") end)
+animsTab.Activated:Connect(function() selectTab("Animations") end)
+playerTab.Activated:Connect(function() selectTab("Player") end)
+visualsTab.Activated:Connect(function() selectTab("Visuals") end)
+mm2Tab.Activated:Connect(function() selectTab("MM2") end)
+
 selectTab("Info")
 
-print("RAHMAT Menu v7.3 + MM2 полный фикс. Кнопки видны, пистолет подбирается.")
+print("RAHMAT Menu v7.3 + MM2 полный фикс. Кнопки видны, пистолет подбирается. Вкладки тач-фикс.")
