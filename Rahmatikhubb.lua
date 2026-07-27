@@ -1,5 +1,6 @@
 --[[
-    RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — СУПЕРСТАБИЛЬНЫЙ ФИКС
+    RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — ФИНАЛЬНЫЙ РАБОЧИЙ ВАРИАНТ
+    Сворачивание: кнопка 🗕 в заголовке | Разворачивание: стрелка ▼
 --]]
 
 local Players = game:GetService("Players")
@@ -95,7 +96,7 @@ local function HSVtoRGB(h, s, v)
     return Color3.fromRGB((r + m) * 255, (g + m) * 255, (b + m) * 255)
 end
 
-local mainFrame, titleBar, contentFrame  -- будут созданы
+local mainFrame, titleBar, contentFrame, tabBar  -- будут созданы
 
 local function applyHue(hue)
     if not mainFrame then return end
@@ -542,7 +543,7 @@ titleCorner.CornerRadius = UDim.new(0, 14)
 titleCorner.Parent = titleBar
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -44, 1, 0)
+titleLabel.Size = UDim2.new(1, -84, 1, 0)  -- освобождаем место для кнопок
 titleLabel.Position = UDim2.new(0, 14, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "RAHMAT"
@@ -558,6 +559,7 @@ RunService.RenderStepped:Connect(function(dt)
     titleLabel.TextColor3 = HSVtoRGB(rainbowHue, 1, 1)
 end)
 
+-- Кнопки заголовка
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 28, 0, 28)
 closeButton.Position = UDim2.new(1, -34, 0, 4)
@@ -572,6 +574,37 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeButton
 
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Size = UDim2.new(0, 28, 0, 28)
+minimizeButton.Position = UDim2.new(1, -66, 0, 4)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
+minimizeButton.Text = "🗕"
+minimizeButton.TextColor3 = Color3.fromRGB(220, 220, 220)
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 14
+minimizeButton.Parent = titleBar
+minimizeButton.ZIndex = 20
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 8)
+minCorner.Parent = minimizeButton
+
+-- Кнопка "развернуть" (появляется при свёрнутом меню)
+local restoreButton = Instance.new("TextButton")
+restoreButton.Size = UDim2.new(0, 28, 0, 28)
+restoreButton.Position = UDim2.new(1, -34, 0, 4)
+restoreButton.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
+restoreButton.Text = "▼"
+restoreButton.TextColor3 = Color3.fromRGB(220, 220, 220)
+restoreButton.Font = Enum.Font.GothamBold
+restoreButton.TextSize = 14
+restoreButton.Visible = false
+restoreButton.Parent = titleBar
+restoreButton.ZIndex = 20
+local restCorner = Instance.new("UICorner")
+restCorner.CornerRadius = UDim.new(0, 8)
+restCorner.Parent = restoreButton
+
+-- Кнопка открытия меню (R)
 local openButton = Instance.new("TextButton")
 openButton.Size = UDim2.new(0, 48, 0, 48)
 openButton.Position = UDim2.new(1, -66, 0.5, -24)
@@ -583,20 +616,48 @@ openButton.TextSize = 22
 openButton.Visible = false
 openButton.Parent = screenGui
 openButton.ZIndex = 20
-
 local openCorner = Instance.new("UICorner")
 openCorner.CornerRadius = UDim.new(1, 0)
 openCorner.Parent = openButton
-
 local openStroke = Instance.new("UIStroke")
 openStroke.Color = Color3.fromRGB(255, 255, 255)
 openStroke.Thickness = 2
 openStroke.Transparency = 0.4
 openStroke.Parent = openButton
 
+-- Логика сворачивания
+local minimized = false
+local fullHeight = 380
+local minHeight = 36
+
+local function minimizeMenu()
+    minimized = true
+    -- прячем всё кроме заголовка
+    tabBar.Visible = false
+    contentFrame.Visible = false
+    mainFrame.Size = UDim2.new(0, 460, 0, minHeight)
+    minimizeButton.Visible = false
+    restoreButton.Visible = true
+end
+
+local function restoreMenu()
+    minimized = false
+    tabBar.Visible = true
+    contentFrame.Visible = true
+    mainFrame.Size = UDim2.new(0, 460, 0, fullHeight)
+    minimizeButton.Visible = true
+    restoreButton.Visible = false
+end
+
+minimizeButton.MouseButton1Click:Connect(minimizeMenu)
+restoreButton.MouseButton1Click:Connect(restoreMenu)
+
 local function openMenu()
     mainFrame.Visible = true
     openButton.Visible = false
+    if minimized then
+        restoreMenu()  -- если был свёрнут, разворачиваем
+    end
 end
 local function closeMenu()
     mainFrame.Visible = false
@@ -641,7 +702,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- Панель вкладок
-local tabBar = Instance.new("Frame")
+tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 32)
 tabBar.Position = UDim2.new(0, 8, 0, 46)
 tabBar.BackgroundTransparency = 1
@@ -653,7 +714,7 @@ tabLayout.FillDirection = Enum.FillDirection.Horizontal
 tabLayout.Padding = UDim.new(0, 4)
 tabLayout.Parent = tabBar
 
-local function createTabButton(name, text)
+local function createTabButton(name, text, callback)
     local btn = Instance.new("TextButton")
     btn.Name = name
     btn.Size = UDim2.new(0, 80, 1, 0)
@@ -667,32 +728,9 @@ local function createTabButton(name, text)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = btn
+    btn.MouseButton1Click:Connect(callback)
     return btn
 end
-
-local infoTab = createTabButton("InfoTab", "Инфо")
-local settingsTab = createTabButton("SettingsTab", "Настр.")
-local animsTab = createTabButton("AnimationsTab", "Анимки")
-local playerTab = createTabButton("PlayerTab", "Игрок")
-local visualsTab = createTabButton("VisualsTab", "Визуалы")
-local mm2Tab = createTabButton("MM2Tab", "MM2")
-
-local tabButtons = {infoTab, settingsTab, animsTab, playerTab, visualsTab, mm2Tab}
-local tabPadding = 4
-
-local function resizeTabs()
-    local totalWidth = mainFrame.AbsoluteSize.X - 16
-    if totalWidth <= 0 then return end
-    local numTabs = #tabButtons
-    local totalPadding = (numTabs - 1) * tabPadding
-    local availableWidth = totalWidth - totalPadding
-    local tabWidth = math.max(60, availableWidth / numTabs)
-    for _, btn in ipairs(tabButtons) do
-        btn.Size = UDim2.new(0, tabWidth, 1, 0)
-    end
-end
-mainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeTabs)
-resizeTabs()
 
 -- Контент
 contentFrame = Instance.new("Frame")
@@ -710,6 +748,18 @@ contentCorner.CornerRadius = UDim.new(0, 12)
 contentCorner.Parent = contentFrame
 
 local pages = {}
+local currentTab = "Info"
+
+local function selectTab(tabName)
+    currentTab = tabName
+    for name, page in pairs(pages) do
+        page.Visible = (name == tabName)
+    end
+    -- подсветка кнопок
+    for _, btn in ipairs(tabButtons) do
+        btn.BackgroundColor3 = (btn.Name == tabName.."Tab") and Color3.fromRGB(123, 97, 255) or Color3.fromRGB(40, 40, 46)
+    end
+end
 
 local function createScrollPage()
     local sf = Instance.new("ScrollingFrame")
@@ -749,15 +799,14 @@ local function fixScrolling(sf)
     end
 end
 
--- ================== ВКЛАДКА ИНФО ==================
+-- ================== ВКЛАДКИ (СОЗДАНИЕ) ==================
+-- Инфо
 local infoPage = createScrollPage()
-infoPage.Visible = true
 pages.Info = infoPage
-
 local infoLabel = Instance.new("TextLabel")
 infoLabel.Size = UDim2.new(1, -16, 0, 160)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "Добро пожаловать в RAHMAT!\n\nСвернуть: ✕\nОткрыть: R (Android) или RightShift"
+infoLabel.Text = "Добро пожаловать в RAHMAT!\n\nСвернуть: 🗕\nЗакрыть: ✕\nОткрыть: R (Android) или RightShift"
 infoLabel.TextColor3 = Color3.fromRGB(210, 210, 210)
 infoLabel.TextWrapped = true
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -768,11 +817,9 @@ infoLabel.Parent = infoPage
 infoLabel.ZIndex = 1
 task.spawn(function() fixScrolling(infoPage) end)
 
--- ================== ВКЛАДКА НАСТРОЙКИ ==================
+-- Настройки
 local settingsPage = createScrollPage()
-settingsPage.Visible = false
 pages.Settings = settingsPage
-
 local settingsLabel = Instance.new("TextLabel")
 settingsLabel.Size = UDim2.new(1, -16, 0, 24)
 settingsLabel.BackgroundTransparency = 1
@@ -783,7 +830,6 @@ settingsLabel.Font = Enum.Font.GothamBold
 settingsLabel.TextSize = 15
 settingsLabel.Parent = settingsPage
 settingsLabel.ZIndex = 1
-
 local resetButton = Instance.new("TextButton")
 resetButton.Size = UDim2.new(0, 180, 0, 30)
 resetButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
@@ -793,9 +839,7 @@ resetButton.Font = Enum.Font.GothamBold
 resetButton.TextSize = 13
 resetButton.Parent = settingsPage
 resetButton.ZIndex = 10
-local resetCorner = Instance.new("UICorner")
-resetCorner.CornerRadius = UDim.new(0, 6)
-resetCorner.Parent = resetButton
+Instance.new("UICorner", resetButton).CornerRadius = UDim.new(0, 6)
 
 local function resetAllSettings()
     if flying then stopFly(); flyBtn.Text = "Fly: Выкл"; flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56) end
@@ -837,10 +881,9 @@ end
 resetButton.MouseButton1Click:Connect(resetAllSettings)
 task.spawn(function() fixScrolling(settingsPage) end)
 
--- ================== ВКЛАДКА АНИМКИ ==================
+-- Анимации
 local animsPage = createScrollPage()
 pages.Animations = animsPage
-
 local animsLabel = Instance.new("TextLabel")
 animsLabel.Size = UDim2.new(1, -16, 0, 24)
 animsLabel.BackgroundTransparency = 1
@@ -911,9 +954,7 @@ local function createAnimButton(parent, animData)
     btn.TextSize = 12
     btn.ZIndex = 10
     btn.Parent = parent
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     btn.MouseButton1Click:Connect(function()
         playAnimationById(animData.id)
         for _, child in parent:GetChildren() do
@@ -937,9 +978,7 @@ stopBtn.Font = Enum.Font.GothamBold
 stopBtn.TextSize = 12
 stopBtn.ZIndex = 10
 stopBtn.Parent = animContainer
-local stopCorner = Instance.new("UICorner")
-stopCorner.CornerRadius = UDim.new(0, 6)
-stopCorner.Parent = stopBtn
+Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0, 6)
 stopBtn.MouseButton1Click:Connect(function()
     stopAllAnimations()
     for _, child in animContainer:GetChildren() do
@@ -976,9 +1015,7 @@ idBox.PlaceholderText = "ID"
 idBox.ClearTextOnFocus = false
 idBox.Parent = idFrame
 idBox.ZIndex = 1
-local idCorner = Instance.new("UICorner")
-idCorner.CornerRadius = UDim.new(0, 4)
-idCorner.Parent = idBox
+Instance.new("UICorner", idBox).CornerRadius = UDim.new(0, 4)
 
 local playIdBtn = Instance.new("TextButton")
 playIdBtn.Size = UDim2.new(0, 60, 1, 0)
@@ -990,9 +1027,7 @@ playIdBtn.Font = Enum.Font.Gotham
 playIdBtn.TextSize = 12
 playIdBtn.Parent = idFrame
 playIdBtn.ZIndex = 10
-local playIdCorner = Instance.new("UICorner")
-playIdCorner.CornerRadius = UDim.new(0, 4)
-playIdCorner.Parent = playIdBtn
+Instance.new("UICorner", playIdBtn).CornerRadius = UDim.new(0, 4)
 
 playIdBtn.MouseButton1Click:Connect(function()
     local id = idBox.Text
@@ -1006,10 +1041,9 @@ end)
 
 task.spawn(function() fixScrolling(animsPage) end)
 
--- ================== ВКЛАДКА ИГРОК ==================
+-- Игрок
 local playerPage = createScrollPage()
 pages.Player = playerPage
-
 local playerLabel = Instance.new("TextLabel")
 playerLabel.Size = UDim2.new(1, -16, 0, 24)
 playerLabel.BackgroundTransparency = 1
@@ -1044,20 +1078,10 @@ flyBtn.Font = Enum.Font.GothamBold
 flyBtn.TextSize = 13
 flyBtn.Parent = playerPage
 flyBtn.ZIndex = 10
-local flyCorner = Instance.new("UICorner")
-flyCorner.CornerRadius = UDim.new(0, 6)
-flyCorner.Parent = flyBtn
-
+Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 6)
 flyBtn.MouseButton1Click:Connect(function()
-    if flying then
-        stopFly()
-        flyBtn.Text = "Fly: Выкл"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
-    else
-        startFly()
-        flyBtn.Text = "Fly: Вкл"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
-    end
+    if flying then stopFly(); flyBtn.Text = "Fly: Выкл"; flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
+    else startFly(); flyBtn.Text = "Fly: Вкл"; flyBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255) end
 end)
 
 -- Noclip
@@ -1070,21 +1094,11 @@ noclipBtn.Font = Enum.Font.GothamBold
 noclipBtn.TextSize = 13
 noclipBtn.Parent = playerPage
 noclipBtn.ZIndex = 10
-local noclipCorner = Instance.new("UICorner")
-noclipCorner.CornerRadius = UDim.new(0, 6)
-noclipCorner.Parent = noclipBtn
-
+Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 6)
 noclipBtn.MouseButton1Click:Connect(function()
     noclipEnabled = not noclipEnabled
-    if noclipEnabled then
-        enableNoClip()
-        noclipBtn.Text = "Noclip: Вкл"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
-    else
-        disableNoClip()
-        noclipBtn.Text = "Noclip: Выкл"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
-    end
+    if noclipEnabled then enableNoClip(); noclipBtn.Text = "Noclip: Вкл"; noclipBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
+    else disableNoClip(); noclipBtn.Text = "Noclip: Выкл"; noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56) end
 end)
 
 -- Невидимка
@@ -1097,21 +1111,11 @@ invisBtn.Font = Enum.Font.GothamBold
 invisBtn.TextSize = 13
 invisBtn.Parent = playerPage
 invisBtn.ZIndex = 10
-local invisCorner = Instance.new("UICorner")
-invisCorner.CornerRadius = UDim.new(0, 6)
-invisCorner.Parent = invisBtn
-
+Instance.new("UICorner", invisBtn).CornerRadius = UDim.new(0, 6)
 invisBtn.MouseButton1Click:Connect(function()
     invisEnabled = not invisEnabled
-    if invisEnabled then
-        applyInvisibility(true)
-        invisBtn.Text = "Невидимка: Вкл"
-        invisBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
-    else
-        applyInvisibility(false)
-        invisBtn.Text = "Невидимка: Выкл"
-        invisBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
-    end
+    if invisEnabled then applyInvisibility(true); invisBtn.Text = "Невидимка: Вкл"; invisBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
+    else applyInvisibility(false); invisBtn.Text = "Невидимка: Выкл"; invisBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56) end
 end)
 
 -- Телепорт
@@ -1135,9 +1139,7 @@ teleportDropdownBtn.Font = Enum.Font.Gotham
 teleportDropdownBtn.TextSize = 12
 teleportDropdownBtn.Parent = playerPage
 teleportDropdownBtn.ZIndex = 10
-local teleportDropdownCorner = Instance.new("UICorner")
-teleportDropdownCorner.CornerRadius = UDim.new(0, 4)
-teleportDropdownCorner.Parent = teleportDropdownBtn
+Instance.new("UICorner", teleportDropdownBtn).CornerRadius = UDim.new(0, 4)
 
 local teleportListFrame = Instance.new("ScrollingFrame")
 teleportListFrame.Size = UDim2.new(0, 160, 0, 80)
@@ -1174,9 +1176,7 @@ local function updateTeleportList()
             plrBtn.TextSize = 12
             plrBtn.ZIndex = 20
             plrBtn.Parent = teleportListFrame
-            local plrCorner = Instance.new("UICorner")
-            plrCorner.CornerRadius = UDim.new(0, 4)
-            plrCorner.Parent = plrBtn
+            Instance.new("UICorner", plrBtn).CornerRadius = UDim.new(0, 4)
             plrBtn.MouseButton1Click:Connect(function()
                 teleportTarget = plr
                 teleportDropdownBtn.Text = plr.Name
@@ -1202,10 +1202,7 @@ teleportBtn.Font = Enum.Font.Gotham
 teleportBtn.TextSize = 12
 teleportBtn.Parent = playerPage
 teleportBtn.ZIndex = 10
-local teleportBtnCorner = Instance.new("UICorner")
-teleportBtnCorner.CornerRadius = UDim.new(0, 4)
-teleportBtnCorner.Parent = teleportBtn
-
+Instance.new("UICorner", teleportBtn).CornerRadius = UDim.new(0, 4)
 teleportBtn.MouseButton1Click:Connect(function()
     if not teleportTarget then return end
     local targetChar = teleportTarget.Character
@@ -1228,20 +1225,15 @@ flingBtn.Font = Enum.Font.GothamBold
 flingBtn.TextSize = 13
 flingBtn.Parent = playerPage
 flingBtn.ZIndex = 10
-local flingCorner = Instance.new("UICorner")
-flingCorner.CornerRadius = UDim.new(0, 6)
-flingCorner.Parent = flingBtn
-
+Instance.new("UICorner", flingBtn).CornerRadius = UDim.new(0, 6)
 flingBtn.MouseButton1Click:Connect(function()
     flingEnabled = not flingEnabled
     if flingEnabled then
         if character then setupFling(character) end
-        flingBtn.Text = "Fling: Вкл"
-        flingBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
+        flingBtn.Text = "Fling: Вкл"; flingBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
     else
         disableFling()
-        flingBtn.Text = "Fling: Выкл"
-        flingBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
+        flingBtn.Text = "Fling: Выкл"; flingBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
     end
 end)
 
@@ -1285,9 +1277,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     box.ClearTextOnFocus = false
     box.Parent = row
     box.ZIndex = 1
-    local boxCorner = Instance.new("UICorner")
-    boxCorner.CornerRadius = UDim.new(0, 4)
-    boxCorner.Parent = box
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
     local applyBtn = Instance.new("TextButton")
     applyBtn.Size = UDim2.new(0, 55, 1, 0)
     applyBtn.Position = UDim2.new(1, -60, 0, 0)
@@ -1298,9 +1288,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     applyBtn.TextSize = 11
     applyBtn.Parent = row
     applyBtn.ZIndex = 10
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 4)
-    btnCorner.Parent = applyBtn
+    Instance.new("UICorner", applyBtn).CornerRadius = UDim.new(0, 4)
     applyBtn.MouseButton1Click:Connect(function()
         local val = tonumber(box.Text)
         if val then
@@ -1320,35 +1308,9 @@ createSlider(speedPanel, "Скорость полёта:", 50, 0, 99999, functio
 
 task.spawn(function() fixScrolling(playerPage) end)
 
--- Fly управление
-RunService.RenderStepped:Connect(function()
-    if not flying then return end
-    updateCharacter()
-    if not rootPart or not bodyVelocity or not bodyGyro then return end
-    local camera = workspace.CurrentCamera
-    if not camera then return end
-    local moveDir = Vector3.new(0, 0, 0)
-    if humanoid then
-        local joy = humanoid.MoveDirection
-        if joy.Magnitude > 0.1 then
-            local forward = camera.CFrame.LookVector
-            local right = camera.CFrame.RightVector
-            local fwd = joy:Dot(forward)
-            local rgt = joy:Dot(right)
-            moveDir = (forward * fwd + right * rgt)
-            if moveDir.Magnitude > 0.1 then moveDir = moveDir.Unit else moveDir = Vector3.new(0, 0, 0) end
-        end
-    end
-    bodyVelocity.Velocity = moveDir * flySpeed
-    if moveDir.Magnitude > 0.1 then
-        bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + moveDir)
-    end
-end)
-
--- ================== ВКЛАДКА ВИЗУАЛЫ ==================
+-- Визуалы
 local visualsPage = createScrollPage()
 pages.Visuals = visualsPage
-
 local visualsLabel = Instance.new("TextLabel")
 visualsLabel.Size = UDim2.new(1, -16, 0, 24)
 visualsLabel.BackgroundTransparency = 1
@@ -1360,7 +1322,6 @@ visualsLabel.TextSize = 15
 visualsLabel.Parent = visualsPage
 visualsLabel.ZIndex = 1
 
--- Ники
 local namesToggle = Instance.new("TextButton")
 namesToggle.Size = UDim2.new(0, 160, 0, 30)
 namesToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1370,10 +1331,7 @@ namesToggle.Font = Enum.Font.Gotham
 namesToggle.TextSize = 13
 namesToggle.Parent = visualsPage
 namesToggle.ZIndex = 10
-local namesCorner = Instance.new("UICorner")
-namesCorner.CornerRadius = UDim.new(0, 6)
-namesCorner.Parent = namesToggle
-
+Instance.new("UICorner", namesToggle).CornerRadius = UDim.new(0, 6)
 namesToggle.MouseButton1Click:Connect(function()
     espEnabledNames = not espEnabledNames
     namesToggle.Text = "Ники: " .. (espEnabledNames and "Вкл" or "Выкл")
@@ -1381,7 +1339,6 @@ namesToggle.MouseButton1Click:Connect(function()
     refreshESP()
 end)
 
--- Хитбоксы
 local boxesToggle = Instance.new("TextButton")
 boxesToggle.Size = UDim2.new(0, 160, 0, 30)
 boxesToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1391,10 +1348,7 @@ boxesToggle.Font = Enum.Font.Gotham
 boxesToggle.TextSize = 13
 boxesToggle.Parent = visualsPage
 boxesToggle.ZIndex = 10
-local boxesCorner = Instance.new("UICorner")
-boxesCorner.CornerRadius = UDim.new(0, 6)
-boxesCorner.Parent = boxesToggle
-
+Instance.new("UICorner", boxesToggle).CornerRadius = UDim.new(0, 6)
 boxesToggle.MouseButton1Click:Connect(function()
     espEnabledBoxes = not espEnabledBoxes
     boxesToggle.Text = "Хитбоксы: " .. (espEnabledBoxes and "Вкл" or "Выкл")
@@ -1402,7 +1356,6 @@ boxesToggle.MouseButton1Click:Connect(function()
     refreshESP()
 end)
 
--- Аимбот
 local aimbotBtn = Instance.new("TextButton")
 aimbotBtn.Size = UDim2.new(0, 160, 0, 30)
 aimbotBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1412,10 +1365,7 @@ aimbotBtn.Font = Enum.Font.Gotham
 aimbotBtn.TextSize = 13
 aimbotBtn.Parent = visualsPage
 aimbotBtn.ZIndex = 10
-local aimbotCorner = Instance.new("UICorner")
-aimbotCorner.CornerRadius = UDim.new(0, 6)
-aimbotCorner.Parent = aimbotBtn
-
+Instance.new("UICorner", aimbotBtn).CornerRadius = UDim.new(0, 6)
 aimbotBtn.MouseButton1Click:Connect(function()
     aimbotEnabled = not aimbotEnabled
     aimbotBtn.Text = "Аимбот: " .. (aimbotEnabled and "Вкл" or "Выкл")
@@ -1443,9 +1393,7 @@ targetDropdownBtn.Font = Enum.Font.Gotham
 targetDropdownBtn.TextSize = 12
 targetDropdownBtn.Parent = visualsPage
 targetDropdownBtn.ZIndex = 10
-local targetDropdownCorner = Instance.new("UICorner")
-targetDropdownCorner.CornerRadius = UDim.new(0, 4)
-targetDropdownCorner.Parent = targetDropdownBtn
+Instance.new("UICorner", targetDropdownBtn).CornerRadius = UDim.new(0, 4)
 
 local targetListFrame = Instance.new("ScrollingFrame")
 targetListFrame.Size = UDim2.new(0, 160, 0, 80)
@@ -1480,9 +1428,7 @@ local function updateTargetList()
     allBtn.TextSize = 12
     allBtn.ZIndex = 20
     allBtn.Parent = targetListFrame
-    local allCorner = Instance.new("UICorner")
-    allCorner.CornerRadius = UDim.new(0, 4)
-    allCorner.Parent = allBtn
+    Instance.new("UICorner", allBtn).CornerRadius = UDim.new(0, 4)
     allBtn.MouseButton1Click:Connect(function()
         aimTargetPlayer = nil
         targetDropdownBtn.Text = "Все"
@@ -1500,9 +1446,7 @@ local function updateTargetList()
             plrBtn.TextSize = 12
             plrBtn.ZIndex = 20
             plrBtn.Parent = targetListFrame
-            local plrCorner = Instance.new("UICorner")
-            plrCorner.CornerRadius = UDim.new(0, 4)
-            plrCorner.Parent = plrBtn
+            Instance.new("UICorner", plrBtn).CornerRadius = UDim.new(0, 4)
             plrBtn.MouseButton1Click:Connect(function()
                 aimTargetPlayer = plr
                 targetDropdownBtn.Text = plr.Name
@@ -1595,9 +1539,7 @@ hueTrack.BackgroundColor3 = Color3.fromRGB(60, 60, 66)
 hueTrack.BorderSizePixel = 0
 hueTrack.Active = true
 hueTrack.Parent = hueSliderFrame
-local trackCorner = Instance.new("UICorner")
-trackCorner.CornerRadius = UDim.new(0, 3)
-trackCorner.Parent = hueTrack
+Instance.new("UICorner", hueTrack).CornerRadius = UDim.new(0, 3)
 
 local hueKnob = Instance.new("TextButton")
 hueKnob.Size = UDim2.new(0, 18, 0, 18)
@@ -1607,9 +1549,7 @@ hueKnob.AutoButtonColor = false
 hueKnob.Active = true
 hueKnob.Parent = hueSliderFrame
 hueKnob.ZIndex = 10
-local knobCorner = Instance.new("UICorner")
-knobCorner.CornerRadius = UDim.new(1, 0)
-knobCorner.Parent = hueKnob
+Instance.new("UICorner", hueKnob).CornerRadius = UDim.new(1, 0)
 
 local hueValueLabel = Instance.new("TextLabel")
 hueValueLabel.Size = UDim2.new(0, 40, 1, 0)
@@ -1671,19 +1611,11 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 updateHueKnobPosition()
-
--- ESP/AIM обновление
-RunService.RenderStepped:Connect(function()
-    if espEnabledNames or espEnabledBoxes then updateESP() end
-    updateAimbot()
-end)
-
 task.spawn(function() fixScrolling(visualsPage) end)
 
--- ================== ВКЛАДКА MM2 ==================
+-- MM2
 local mm2Page = createScrollPage()
 pages.MM2 = mm2Page
-
 local mm2Label = Instance.new("TextLabel")
 mm2Label.Size = UDim2.new(1, -16, 0, 24)
 mm2Label.BackgroundTransparency = 1
@@ -1695,7 +1627,7 @@ mm2Label.TextSize = 15
 mm2Label.Parent = mm2Page
 mm2Label.ZIndex = 1
 
--- Кнопка ESP
+-- Кнопки MM2 (определены до использования в селекте)
 local mm2ESPBtn = Instance.new("TextButton")
 mm2ESPBtn.Size = UDim2.new(0, 160, 0, 30)
 mm2ESPBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
@@ -1705,10 +1637,7 @@ mm2ESPBtn.Font = Enum.Font.GothamBold
 mm2ESPBtn.TextSize = 13
 mm2ESPBtn.Parent = mm2Page
 mm2ESPBtn.ZIndex = 10
-local mm2ESPCorner = Instance.new("UICorner")
-mm2ESPCorner.CornerRadius = UDim.new(0, 6)
-mm2ESPCorner.Parent = mm2ESPBtn
-
+Instance.new("UICorner", mm2ESPBtn).CornerRadius = UDim.new(0, 6)
 mm2ESPBtn.MouseButton1Click:Connect(function()
     MM2.ESPEnabled = not MM2.ESPEnabled
     mm2ESPBtn.Text = "ESP: " .. (MM2.ESPEnabled and "Вкл" or "Выкл")
@@ -1719,7 +1648,6 @@ mm2ESPBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Кнопка аимбота
 local mm2AimbotBtn = Instance.new("TextButton")
 mm2AimbotBtn.Size = UDim2.new(0, 160, 0, 30)
 mm2AimbotBtn.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
@@ -1729,17 +1657,14 @@ mm2AimbotBtn.Font = Enum.Font.GothamBold
 mm2AimbotBtn.TextSize = 13
 mm2AimbotBtn.Parent = mm2Page
 mm2AimbotBtn.ZIndex = 10
-local mm2AimbotCorner = Instance.new("UICorner")
-mm2AimbotCorner.CornerRadius = UDim.new(0, 6)
-mm2AimbotCorner.Parent = mm2AimbotBtn
-
+Instance.new("UICorner", mm2AimbotBtn).CornerRadius = UDim.new(0, 6)
 mm2AimbotBtn.MouseButton1Click:Connect(function()
     MM2.AimbotEnabled = not MM2.AimbotEnabled
     mm2AimbotBtn.Text = "Аимбот: " .. (MM2.AimbotEnabled and "Вкл" or "Выкл")
     mm2AimbotBtn.BackgroundColor3 = MM2.AimbotEnabled and Color3.fromRGB(123, 97, 255) or Color3.fromRGB(50, 50, 56)
 end)
 
--- Плавающие кнопки MM2
+-- Плавающие кнопки
 local floatGui = Instance.new("ScreenGui")
 floatGui.Name = "MM2_FloatButtons"
 floatGui.ResetOnSpawn = false
@@ -1804,11 +1729,9 @@ local function makeDraggable(btn)
         end
     end)
 end
-
 makeDraggable(shootBtn)
 makeDraggable(knifeBtn)
 
--- Функции выстрела/броска
 local function shootWithAim()
     if not player.Character then return end
     local gun = player.Character:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun")
@@ -1826,7 +1749,6 @@ local function shootWithAim()
     task.wait(0.05)
     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
 end
-
 shootBtn.MouseButton1Click:Connect(shootWithAim)
 
 local function throwKnife()
@@ -1846,10 +1768,8 @@ local function throwKnife()
     task.wait(0.05)
     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
 end
-
 knifeBtn.MouseButton1Click:Connect(throwKnife)
 
--- Тогглы кнопок
 local shootToggleBtn = Instance.new("TextButton")
 shootToggleBtn.Size = UDim2.new(0, 160, 0, 30)
 shootToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1859,10 +1779,7 @@ shootToggleBtn.Font = Enum.Font.GothamBold
 shootToggleBtn.TextSize = 13
 shootToggleBtn.Parent = mm2Page
 shootToggleBtn.ZIndex = 10
-local shootToggleCorner = Instance.new("UICorner")
-shootToggleCorner.CornerRadius = UDim.new(0, 6)
-shootToggleCorner.Parent = shootToggleBtn
-
+Instance.new("UICorner", shootToggleBtn).CornerRadius = UDim.new(0, 6)
 shootToggleBtn.MouseButton1Click:Connect(function()
     MM2.ShootButtonEnabled = not MM2.ShootButtonEnabled
     shootToggleBtn.Text = "Выстрел (Шериф): " .. (MM2.ShootButtonEnabled and "Вкл" or "Выкл")
@@ -1879,10 +1796,7 @@ knifeToggleBtn.Font = Enum.Font.GothamBold
 knifeToggleBtn.TextSize = 13
 knifeToggleBtn.Parent = mm2Page
 knifeToggleBtn.ZIndex = 10
-local knifeToggleCorner = Instance.new("UICorner")
-knifeToggleCorner.CornerRadius = UDim.new(0, 6)
-knifeToggleCorner.Parent = knifeToggleBtn
-
+Instance.new("UICorner", knifeToggleBtn).CornerRadius = UDim.new(0, 6)
 knifeToggleBtn.MouseButton1Click:Connect(function()
     MM2.KnifeThrowEnabled = not MM2.KnifeThrowEnabled
     knifeToggleBtn.Text = "Бросок ножа: " .. (MM2.KnifeThrowEnabled and "Вкл" or "Выкл")
@@ -1890,7 +1804,6 @@ knifeToggleBtn.MouseButton1Click:Connect(function()
     knifeBtn.Visible = MM2.KnifeThrowEnabled
 end)
 
--- Авто-подбор
 local autoPickupBtn = Instance.new("TextButton")
 autoPickupBtn.Size = UDim2.new(0, 160, 0, 30)
 autoPickupBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1900,17 +1813,13 @@ autoPickupBtn.Font = Enum.Font.GothamBold
 autoPickupBtn.TextSize = 13
 autoPickupBtn.Parent = mm2Page
 autoPickupBtn.ZIndex = 10
-local autoPickupCorner = Instance.new("UICorner")
-autoPickupCorner.CornerRadius = UDim.new(0, 6)
-autoPickupCorner.Parent = autoPickupBtn
-
+Instance.new("UICorner", autoPickupBtn).CornerRadius = UDim.new(0, 6)
 autoPickupBtn.MouseButton1Click:Connect(function()
     MM2.AutoPickupGun = not MM2.AutoPickupGun
     autoPickupBtn.Text = "Авто-подбор пистолета: " .. (MM2.AutoPickupGun and "Вкл" or "Выкл")
     autoPickupBtn.BackgroundColor3 = MM2.AutoPickupGun and Color3.fromRGB(123, 97, 255) or Color3.fromRGB(50, 50, 56)
 end)
 
--- Заморозка
 local freezeButtonsToggle = Instance.new("TextButton")
 freezeButtonsToggle.Size = UDim2.new(0, 160, 0, 30)
 freezeButtonsToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1920,10 +1829,7 @@ freezeButtonsToggle.Font = Enum.Font.GothamBold
 freezeButtonsToggle.TextSize = 13
 freezeButtonsToggle.Parent = mm2Page
 freezeButtonsToggle.ZIndex = 10
-local freezeButtonsCorner = Instance.new("UICorner")
-freezeButtonsCorner.CornerRadius = UDim.new(0, 6)
-freezeButtonsCorner.Parent = freezeButtonsToggle
-
+Instance.new("UICorner", freezeButtonsToggle).CornerRadius = UDim.new(0, 6)
 freezeButtonsToggle.MouseButton1Click:Connect(function()
     MM2.FreezeButtons = not MM2.FreezeButtons
     freezeButtonsToggle.Text = "Заморозить кнопки: " .. (MM2.FreezeButtons and "Вкл" or "Выкл")
@@ -1932,8 +1838,8 @@ end)
 
 task.spawn(function() fixScrolling(mm2Page) end)
 
--- Цикл авто-подбора
-local function autoPickupGunLoop()
+-- Авто-подбор пистолета
+task.spawn(function()
     while task.wait(0.3) do
         if not MM2.AutoPickupGun then continue end
         if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then continue end
@@ -1947,10 +1853,111 @@ local function autoPickupGunLoop()
             end
         end
     end
-end
-task.spawn(autoPickupGunLoop)
+end)
 
--- MM2 ESP/AIM рендер степ
+-- ================== СОЗДАНИЕ КНОПОК ВКЛАДОК (после определения всех страниц) ==================
+-- Теперь создаём кнопки с обработчиками
+local infoTab = createTabButton("InfoTab", "Инфо", function() selectTab("Info") end)
+local settingsTab = createTabButton("SettingsTab", "Настр.", function() selectTab("Settings") end)
+local animsTab = createTabButton("AnimationsTab", "Анимки", function() selectTab("Animations") end)
+local playerTab = createTabButton("PlayerTab", "Игрок", function() selectTab("Player") end)
+local visualsTab = createTabButton("VisualsTab", "Визуалы", function() selectTab("Visuals") end)
+local mm2Tab = createTabButton("MM2Tab", "MM2", function() selectTab("MM2") end)
+local tabButtons = {infoTab, settingsTab, animsTab, playerTab, visualsTab, mm2Tab}
+
+local tabPadding = 4
+local function resizeTabs()
+    local totalWidth = mainFrame.AbsoluteSize.X - 16
+    if totalWidth <= 0 then return end
+    local numTabs = #tabButtons
+    local totalPadding = (numTabs - 1) * tabPadding
+    local availableWidth = totalWidth - totalPadding
+    local tabWidth = math.max(60, availableWidth / numTabs)
+    for _, btn in ipairs(tabButtons) do
+        btn.Size = UDim2.new(0, tabWidth, 1, 0)
+    end
+end
+mainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeTabs)
+resizeTabs()
+
+-- Активируем вкладку "Инфо"
+selectTab("Info")
+
+-- ================== СОБЫТИЯ ПЕРСОНАЖА И ИГРОКОВ ==================
+local function onCharacterAdded()
+    updateCharacter()
+    task.wait(0.5)
+    if humanoid then
+        humanoid.WalkSpeed = savedWalkSpeed
+        humanoid.JumpPower = savedJumpPower
+    end
+    if noclipEnabled then enableNoClip() end
+    if invisEnabled then applyInvisibility(true) end
+    if flingEnabled then setupFling(character) end
+    if flying then
+        stopFly()
+        flyBtn.Text = "Fly: Выкл"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
+    end
+    if shootBtn then shootBtn.Visible = MM2.ShootButtonEnabled end
+    if knifeBtn then knifeBtn.Visible = MM2.KnifeThrowEnabled end
+    if MM2.ESPEnabled then
+        for _, data in pairs(mm2EspStorage) do data.Gui:Destroy() end
+        mm2EspStorage = {}
+    end
+    refreshESP()
+end
+player.CharacterAdded:Connect(onCharacterAdded)
+
+Players.PlayerAdded:Connect(function(target)
+    if (espEnabledNames or espEnabledBoxes) and DrawingAvailable then createESPForPlayer(target) end
+end)
+Players.PlayerRemoving:Connect(function(target)
+    clearESP(target)
+    if mm2EspStorage[target] then
+        mm2EspStorage[target].Gui:Destroy()
+        mm2EspStorage[target] = nil
+    end
+end)
+
+-- Инициализация при старте
+updateCharacter()
+if humanoid then
+    humanoid.WalkSpeed = 16
+    humanoid.JumpPower = 50
+end
+if (espEnabledNames or espEnabledBoxes) and DrawingAvailable then refreshESP() end
+
+-- ================== ЦИКЛЫ ОБНОВЛЕНИЯ ==================
+RunService.RenderStepped:Connect(function()
+    if not flying then return end
+    updateCharacter()
+    if not rootPart or not bodyVelocity or not bodyGyro then return end
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+    local moveDir = Vector3.new(0, 0, 0)
+    if humanoid then
+        local joy = humanoid.MoveDirection
+        if joy.Magnitude > 0.1 then
+            local forward = camera.CFrame.LookVector
+            local right = camera.CFrame.RightVector
+            local fwd = joy:Dot(forward)
+            local rgt = joy:Dot(right)
+            moveDir = (forward * fwd + right * rgt)
+            if moveDir.Magnitude > 0.1 then moveDir = moveDir.Unit else moveDir = Vector3.new(0, 0, 0) end
+        end
+    end
+    bodyVelocity.Velocity = moveDir * flySpeed
+    if moveDir.Magnitude > 0.1 then
+        bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + moveDir)
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if espEnabledNames or espEnabledBoxes then updateESP() end
+    updateAimbot()
+end)
+
 RunService.RenderStepped:Connect(function()
     if MM2.ESPEnabled then
         updateESPMM2()
@@ -1974,88 +1981,4 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ================== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==================
-local activeColor = Color3.fromRGB(123, 97, 255)
-local inactiveColor = Color3.fromRGB(40, 40, 46)
-
-local function selectTab(tabName)
-    for name, page in pairs(pages) do page.Visible = (name == tabName) end
-    local buttons = {
-        Info = infoTab, Settings = settingsTab, Animations = animsTab,
-        Player = playerTab, Visuals = visualsTab, MM2 = mm2Tab
-    }
-    for name, btn in pairs(buttons) do
-        btn.BackgroundColor3 = (name == tabName) and activeColor or inactiveColor
-    end
-end
-
--- Фикс вкладок
-local function fixTabs()
-    infoTab.ZIndex = 30
-    settingsTab.ZIndex = 30
-    animsTab.ZIndex = 30
-    playerTab.ZIndex = 30
-    visualsTab.ZIndex = 30
-    mm2Tab.ZIndex = 30
-    tabBar.ZIndex = 15
-    contentFrame.ZIndex = 1
-    
-    infoTab.MouseButton1Click:Connect(function() selectTab("Info") end)
-    settingsTab.MouseButton1Click:Connect(function() selectTab("Settings") end)
-    animsTab.MouseButton1Click:Connect(function() selectTab("Animations") end)
-    playerTab.MouseButton1Click:Connect(function() selectTab("Player") end)
-    visualsTab.MouseButton1Click:Connect(function() selectTab("Visuals") end)
-    mm2Tab.MouseButton1Click:Connect(function() selectTab("MM2") end)
-    
-    selectTab("Info")
-end
-task.spawn(fixTabs)
-
--- ================== ЕДИНОЕ СОБЫТИЕ ПЕРСОНАЖА ==================
-local function onCharacterAdded(newChar)
-    updateCharacter()
-    task.wait(0.5)
-    if humanoid then
-        humanoid.WalkSpeed = savedWalkSpeed
-        humanoid.JumpPower = savedJumpPower
-    end
-    if noclipEnabled then enableNoClip() end
-    if invisEnabled then applyInvisibility(true) end
-    if flingEnabled then setupFling(character) end
-    if flying then 
-        stopFly() 
-        flyBtn.Text = "Fly: Выкл"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
-    end
-    if shootBtn then shootBtn.Visible = MM2.ShootButtonEnabled end
-    if knifeBtn then knifeBtn.Visible = MM2.KnifeThrowEnabled end
-    if MM2.ESPEnabled then
-        for _, data in pairs(mm2EspStorage) do data.Gui:Destroy() end
-        mm2EspStorage = {}
-    end
-    refreshESP()
-end
-
-player.CharacterAdded:Connect(onCharacterAdded)
-
--- Игроки
-Players.PlayerAdded:Connect(function(target)
-    if (espEnabledNames or espEnabledBoxes) and DrawingAvailable then createESPForPlayer(target) end
-end)
-Players.PlayerRemoving:Connect(function(target) 
-    clearESP(target) 
-    if mm2EspStorage[target] then
-        mm2EspStorage[target].Gui:Destroy()
-        mm2EspStorage[target] = nil
-    end
-end)
-
--- Инициализация при старте
-updateCharacter()
-if humanoid then
-    humanoid.WalkSpeed = 16
-    humanoid.JumpPower = 50
-end
-if (espEnabledNames or espEnabledBoxes) and DrawingAvailable then refreshESP() end
-
-print("RAHMAT Menu v7.3 + MM2 — МЕНЮ ЖИВОЕ И РАБОТАЕТ!")
+print("RAHMAT Menu v7.3 + MM2 — ВСЁ РАБОТАЕТ! Сворачивание: кнопка 🗕")
