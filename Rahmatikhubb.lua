@@ -1,6 +1,6 @@
 --[[
-    RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — Фикс кнопок и авто-подбора
-    Теперь плавающие кнопки всегда показываются, авто-подбор реально подбирает пистолет.
+    RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — ФИКС КНОПОК
+    Теперь все кнопки нажимаются без проблем.
 --]]
 
 local Players = game:GetService("Players")
@@ -54,7 +54,7 @@ local flying = false
 local bodyVelocity, bodyGyro
 
 ------------------------------------------------------------
--- GUI (RAHMAT Menu)
+-- GUI (RAHMAT Menu) — ИСПРАВЛЕННЫЙ
 ------------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RAHMAT_Menu"
@@ -68,7 +68,9 @@ mainFrame.Position = UDim2.new(0.5, -230, 0.5, -190)
 mainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 33)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = true
+mainFrame.Active = false  -- не перехватываем клики
 mainFrame.Parent = screenGui
+mainFrame.ZIndex = 1
 
 local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(0, 14)
@@ -87,6 +89,7 @@ titleBar.Size = UDim2.new(1, 0, 0, 36)
 titleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
+titleBar.ZIndex = 2
 
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 14)
@@ -132,6 +135,7 @@ closeButton.TextColor3 = Color3.fromRGB(220, 220, 220)
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 14
 closeButton.Parent = titleBar
+closeButton.ZIndex = 20
 local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeButton
@@ -146,6 +150,7 @@ openButton.Font = Enum.Font.GothamBold
 openButton.TextSize = 22
 openButton.Visible = false
 openButton.Parent = screenGui
+openButton.ZIndex = 20
 
 local openCorner = Instance.new("UICorner")
 openCorner.CornerRadius = UDim.new(1, 0)
@@ -176,9 +181,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Перемещение меню
+-- Перемещение меню (только через заголовок)
 local dragging = false
-local dragStartPos, frameStartPos = nil, nil
+local dragStartPos, frameStartPos
 
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -193,24 +198,6 @@ titleBar.InputEnded:Connect(function(input)
     end
 end)
 
-local draggingOpen = false
-local openStartPos, openBtnStartPos = nil, nil
-
-openButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        if not mainFrame.Visible then
-            draggingOpen = true
-            openStartPos = UserInputService:GetMouseLocation()
-            openBtnStartPos = openButton.AbsolutePosition
-        end
-    end
-end)
-openButton.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingOpen = false
-    end
-end)
-
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = UserInputService:GetMouseLocation() - dragStartPos
@@ -218,58 +205,10 @@ UserInputService.InputChanged:Connect(function(input)
             frameStartPos.X.Scale, frameStartPos.X.Offset + delta.X,
             frameStartPos.Y.Scale, frameStartPos.Y.Offset + delta.Y
         )
-    elseif draggingOpen and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = UserInputService:GetMouseLocation() - openStartPos
-        local newPos = openBtnStartPos + delta
-        local screenSize = workspace.CurrentCamera.ViewportSize
-        local btnSize = openButton.AbsoluteSize
-        newPos = Vector2.new(
-            math.clamp(newPos.X, 0, screenSize.X - btnSize.X),
-            math.clamp(newPos.Y, 0, screenSize.Y - btnSize.Y)
-        )
-        openButton.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
     end
 end)
 
--- Изменение размера
-local resizeHandle = Instance.new("TextButton")
-resizeHandle.Size = UDim2.new(0, 18, 0, 18)
-resizeHandle.Position = UDim2.new(1, -18, 1, -18)
-resizeHandle.BackgroundColor3 = Color3.fromRGB(123, 97, 255)
-resizeHandle.Text = "◣"
-resizeHandle.TextColor3 = Color3.fromRGB(28, 28, 33)
-resizeHandle.Font = Enum.Font.GothamBold
-resizeHandle.TextSize = 12
-resizeHandle.AutoButtonColor = false
-resizeHandle.Parent = mainFrame
-local resizeCorner = Instance.new("UICorner")
-resizeCorner.CornerRadius = UDim.new(0, 6)
-resizeCorner.Parent = resizeHandle
-
-local resizing = false
-local resizeStartPos, resizeStartSize = nil, nil
-
-resizeHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        resizing = true
-        resizeStartPos = UserInputService:GetMouseLocation()
-        resizeStartSize = mainFrame.Size
-    end
-end)
-resizeHandle.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        resizing = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = UserInputService:GetMouseLocation() - resizeStartPos
-        local newWidth = math.max(320, resizeStartSize.X.Offset + delta.X)
-        local newHeight = math.max(280, resizeStartSize.Y.Offset + delta.Y)
-        mainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
-    end
-end)
+-- Удалили resizeHandle, чтобы не мешал
 
 -- Панель вкладок
 local tabBar = Instance.new("Frame")
@@ -277,6 +216,7 @@ tabBar.Size = UDim2.new(1, -16, 0, 32)
 tabBar.Position = UDim2.new(0, 8, 0, 46)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = mainFrame
+tabBar.ZIndex = 2
 
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -292,6 +232,7 @@ local function createTabButton(name, text)
     btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     btn.Font = Enum.Font.GothamMedium
     btn.TextSize = 13
+    btn.ZIndex = 3
     btn.Parent = tabBar
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
@@ -323,14 +264,16 @@ end
 mainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeTabs)
 resizeTabs()
 
--- Контент
+-- Контент (не перехватывает клики)
 local contentFrame = Instance.new("Frame")
 contentFrame.Size = UDim2.new(1, -16, 1, -86)
 contentFrame.Position = UDim2.new(0, 8, 0, 82)
 contentFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 29)
-contentFrame.BackgroundTransparency = 0.3
+contentFrame.BackgroundTransparency = 1  -- прозрачный, чтобы не мешать
 contentFrame.BorderSizePixel = 0
 contentFrame.Parent = mainFrame
+contentFrame.Active = false
+contentFrame.ZIndex = 2
 
 local contentCorner = Instance.new("UICorner")
 contentCorner.CornerRadius = UDim.new(0, 12)
@@ -351,6 +294,7 @@ local function createScrollPage()
     sf.ClipsDescendants = true
     sf.Parent = contentFrame
     sf.Visible = false
+    sf.ZIndex = 2  -- не выше кнопок
 
     local uiListLayout = Instance.new("UIListLayout")
     uiListLayout.Padding = UDim.new(0, 5)
@@ -393,6 +337,7 @@ infoLabel.TextYAlignment = Enum.TextYAlignment.Top
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 13
 infoLabel.Parent = infoPage
+infoLabel.ZIndex = 2
 task.spawn(function() fixScrolling(infoPage) end)
 
 -- ================== ВКЛАДКА НАСТРОЙКИ ==================
@@ -409,6 +354,7 @@ settingsLabel.TextXAlignment = Enum.TextXAlignment.Left
 settingsLabel.Font = Enum.Font.GothamBold
 settingsLabel.TextSize = 15
 settingsLabel.Parent = settingsPage
+settingsLabel.ZIndex = 2
 
 local resetButton = Instance.new("TextButton")
 resetButton.Size = UDim2.new(0, 180, 0, 30)
@@ -418,6 +364,7 @@ resetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 resetButton.Font = Enum.Font.GothamBold
 resetButton.TextSize = 13
 resetButton.Parent = settingsPage
+resetButton.ZIndex = 10
 local resetCorner = Instance.new("UICorner")
 resetCorner.CornerRadius = UDim.new(0, 6)
 resetCorner.Parent = resetButton
@@ -476,11 +423,13 @@ animsLabel.TextXAlignment = Enum.TextXAlignment.Left
 animsLabel.Font = Enum.Font.GothamBold
 animsLabel.TextSize = 15
 animsLabel.Parent = animsPage
+animsLabel.ZIndex = 2
 
 local animContainer = Instance.new("Frame")
 animContainer.Size = UDim2.new(1, -16, 0, 160)
 animContainer.BackgroundTransparency = 1
 animContainer.Parent = animsPage
+animContainer.ZIndex = 2
 
 local animLayout = Instance.new("UIListLayout")
 animLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -533,6 +482,7 @@ local function createAnimButton(parent, animData)
     btn.TextColor3 = Color3.fromRGB(220, 220, 220)
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 12
+    btn.ZIndex = 10
     btn.Parent = parent
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
@@ -558,6 +508,7 @@ stopBtn.Text = "Стоп"
 stopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 stopBtn.Font = Enum.Font.GothamBold
 stopBtn.TextSize = 12
+stopBtn.ZIndex = 10
 stopBtn.Parent = animContainer
 local stopCorner = Instance.new("UICorner")
 stopCorner.CornerRadius = UDim.new(0, 6)
@@ -573,6 +524,7 @@ local idFrame = Instance.new("Frame")
 idFrame.Size = UDim2.new(1, -16, 0, 30)
 idFrame.BackgroundTransparency = 1
 idFrame.Parent = animsPage
+idFrame.ZIndex = 2
 
 local idLabel = Instance.new("TextLabel")
 idLabel.Size = UDim2.new(0, 80, 1, 0)
@@ -583,6 +535,7 @@ idLabel.TextXAlignment = Enum.TextXAlignment.Left
 idLabel.Font = Enum.Font.Gotham
 idLabel.TextSize = 12
 idLabel.Parent = idFrame
+idLabel.ZIndex = 2
 
 local idBox = Instance.new("TextBox")
 idBox.Size = UDim2.new(0, 120, 1, 0)
@@ -595,6 +548,7 @@ idBox.TextSize = 12
 idBox.PlaceholderText = "ID"
 idBox.ClearTextOnFocus = false
 idBox.Parent = idFrame
+idBox.ZIndex = 2
 local idCorner = Instance.new("UICorner")
 idCorner.CornerRadius = UDim.new(0, 4)
 idCorner.Parent = idBox
@@ -608,6 +562,7 @@ playIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 playIdBtn.Font = Enum.Font.Gotham
 playIdBtn.TextSize = 12
 playIdBtn.Parent = idFrame
+playIdBtn.ZIndex = 10
 local playIdCorner = Instance.new("UICorner")
 playIdCorner.CornerRadius = UDim.new(0, 4)
 playIdCorner.Parent = playIdBtn
@@ -637,6 +592,7 @@ playerLabel.TextXAlignment = Enum.TextXAlignment.Left
 playerLabel.Font = Enum.Font.GothamBold
 playerLabel.TextSize = 15
 playerLabel.Parent = playerPage
+playerLabel.ZIndex = 2
 
 local playerInfo = Instance.new("TextLabel")
 playerInfo.Size = UDim2.new(1, -16, 0, 40)
@@ -649,6 +605,7 @@ playerInfo.TextYAlignment = Enum.TextYAlignment.Top
 playerInfo.Font = Enum.Font.Gotham
 playerInfo.TextSize = 12
 playerInfo.Parent = playerPage
+playerInfo.ZIndex = 2
 
 -- Fly
 local flyBtn = Instance.new("TextButton")
@@ -659,6 +616,7 @@ flyBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 flyBtn.Font = Enum.Font.GothamBold
 flyBtn.TextSize = 13
 flyBtn.Parent = playerPage
+flyBtn.ZIndex = 10
 local flyCorner = Instance.new("UICorner")
 flyCorner.CornerRadius = UDim.new(0, 6)
 flyCorner.Parent = flyBtn
@@ -690,6 +648,7 @@ noclipBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 noclipBtn.Font = Enum.Font.GothamBold
 noclipBtn.TextSize = 13
 noclipBtn.Parent = playerPage
+noclipBtn.ZIndex = 10
 local noclipCorner = Instance.new("UICorner")
 noclipCorner.CornerRadius = UDim.new(0, 6)
 noclipCorner.Parent = noclipBtn
@@ -736,6 +695,7 @@ invisBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 invisBtn.Font = Enum.Font.GothamBold
 invisBtn.TextSize = 13
 invisBtn.Parent = playerPage
+invisBtn.ZIndex = 10
 local invisCorner = Instance.new("UICorner")
 invisCorner.CornerRadius = UDim.new(0, 6)
 invisCorner.Parent = invisBtn
@@ -764,6 +724,7 @@ teleportLabel.TextXAlignment = Enum.TextXAlignment.Left
 teleportLabel.Font = Enum.Font.Gotham
 teleportLabel.TextSize = 12
 teleportLabel.Parent = playerPage
+teleportLabel.ZIndex = 2
 
 local teleportDropdownBtn = Instance.new("TextButton")
 teleportDropdownBtn.Size = UDim2.new(0, 160, 0, 28)
@@ -773,6 +734,7 @@ teleportDropdownBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 teleportDropdownBtn.Font = Enum.Font.Gotham
 teleportDropdownBtn.TextSize = 12
 teleportDropdownBtn.Parent = playerPage
+teleportDropdownBtn.ZIndex = 10
 local teleportDropdownCorner = Instance.new("UICorner")
 teleportDropdownCorner.CornerRadius = UDim.new(0, 4)
 teleportDropdownCorner.Parent = teleportDropdownBtn
@@ -783,7 +745,7 @@ teleportListFrame.Position = UDim2.new(0, 8, 0, 250)
 teleportListFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
 teleportListFrame.BorderSizePixel = 0
 teleportListFrame.Visible = false
-teleportListFrame.ZIndex = 10
+teleportListFrame.ZIndex = 20
 teleportListFrame.ScrollBarThickness = 3
 teleportListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 teleportListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -810,6 +772,7 @@ local function updateTeleportList()
             plrBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             plrBtn.Font = Enum.Font.Gotham
             plrBtn.TextSize = 12
+            plrBtn.ZIndex = 20
             plrBtn.Parent = teleportListFrame
             local plrCorner = Instance.new("UICorner")
             plrCorner.CornerRadius = UDim.new(0, 4)
@@ -838,6 +801,7 @@ teleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 teleportBtn.Font = Enum.Font.Gotham
 teleportBtn.TextSize = 12
 teleportBtn.Parent = playerPage
+teleportBtn.ZIndex = 10
 local teleportBtnCorner = Instance.new("UICorner")
 teleportBtnCorner.CornerRadius = UDim.new(0, 4)
 teleportBtnCorner.Parent = teleportBtn
@@ -895,6 +859,7 @@ flingBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 flingBtn.Font = Enum.Font.GothamBold
 flingBtn.TextSize = 13
 flingBtn.Parent = playerPage
+flingBtn.ZIndex = 10
 local flingCorner = Instance.new("UICorner")
 flingCorner.CornerRadius = UDim.new(0, 6)
 flingCorner.Parent = flingBtn
@@ -917,6 +882,7 @@ local speedPanel = Instance.new("Frame")
 speedPanel.Size = UDim2.new(1, -16, 0, 150)
 speedPanel.BackgroundTransparency = 1
 speedPanel.Parent = playerPage
+speedPanel.ZIndex = 2
 local speedLayout = Instance.new("UIListLayout")
 speedLayout.FillDirection = Enum.FillDirection.Vertical
 speedLayout.Padding = UDim.new(0, 6)
@@ -928,6 +894,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     row.Size = UDim2.new(1, 0, 0, 28)
     row.BackgroundTransparency = 1
     row.Parent = parent
+    row.ZIndex = 2
 
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(0, 120, 1, 0)
@@ -938,6 +905,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     lbl.Font = Enum.Font.Gotham
     lbl.TextSize = 12
     lbl.Parent = row
+    lbl.ZIndex = 2
 
     local box = Instance.new("TextBox")
     box.Size = UDim2.new(0, 70, 1, 0)
@@ -950,6 +918,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     box.PlaceholderText = "0"
     box.ClearTextOnFocus = false
     box.Parent = row
+    box.ZIndex = 2
     local boxCorner = Instance.new("UICorner")
     boxCorner.CornerRadius = UDim.new(0, 4)
     boxCorner.Parent = box
@@ -963,6 +932,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     applyBtn.Font = Enum.Font.Gotham
     applyBtn.TextSize = 11
     applyBtn.Parent = row
+    applyBtn.ZIndex = 10
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 4)
     btnCorner.Parent = applyBtn
@@ -1061,6 +1031,7 @@ visualsLabel.TextXAlignment = Enum.TextXAlignment.Left
 visualsLabel.Font = Enum.Font.GothamBold
 visualsLabel.TextSize = 15
 visualsLabel.Parent = visualsPage
+visualsLabel.ZIndex = 2
 
 -- Ники
 local namesToggle = Instance.new("TextButton")
@@ -1071,6 +1042,7 @@ namesToggle.TextColor3 = Color3.fromRGB(220, 220, 220)
 namesToggle.Font = Enum.Font.Gotham
 namesToggle.TextSize = 13
 namesToggle.Parent = visualsPage
+namesToggle.ZIndex = 10
 local namesCorner = Instance.new("UICorner")
 namesCorner.CornerRadius = UDim.new(0, 6)
 namesCorner.Parent = namesToggle
@@ -1084,6 +1056,7 @@ boxesToggle.TextColor3 = Color3.fromRGB(220, 220, 220)
 boxesToggle.Font = Enum.Font.Gotham
 boxesToggle.TextSize = 13
 boxesToggle.Parent = visualsPage
+boxesToggle.ZIndex = 10
 local boxesCorner = Instance.new("UICorner")
 boxesCorner.CornerRadius = UDim.new(0, 6)
 boxesCorner.Parent = boxesToggle
@@ -1098,6 +1071,7 @@ aimbotBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 aimbotBtn.Font = Enum.Font.Gotham
 aimbotBtn.TextSize = 13
 aimbotBtn.Parent = visualsPage
+aimbotBtn.ZIndex = 10
 local aimbotCorner = Instance.new("UICorner")
 aimbotCorner.CornerRadius = UDim.new(0, 6)
 aimbotCorner.Parent = aimbotBtn
@@ -1113,6 +1087,7 @@ aimTargetLabel.TextXAlignment = Enum.TextXAlignment.Left
 aimTargetLabel.Font = Enum.Font.Gotham
 aimTargetLabel.TextSize = 12
 aimTargetLabel.Parent = visualsPage
+aimTargetLabel.ZIndex = 2
 
 local targetDropdownBtn = Instance.new("TextButton")
 targetDropdownBtn.Size = UDim2.new(0, 160, 0, 28)
@@ -1122,6 +1097,7 @@ targetDropdownBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 targetDropdownBtn.Font = Enum.Font.Gotham
 targetDropdownBtn.TextSize = 12
 targetDropdownBtn.Parent = visualsPage
+targetDropdownBtn.ZIndex = 10
 local targetDropdownCorner = Instance.new("UICorner")
 targetDropdownCorner.CornerRadius = UDim.new(0, 4)
 targetDropdownCorner.Parent = targetDropdownBtn
@@ -1132,7 +1108,7 @@ targetListFrame.Position = UDim2.new(0, 8, 0, 180)
 targetListFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
 targetListFrame.BorderSizePixel = 0
 targetListFrame.Visible = false
-targetListFrame.ZIndex = 10
+targetListFrame.ZIndex = 20
 targetListFrame.ScrollBarThickness = 3
 targetListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 targetListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -1157,6 +1133,7 @@ local function updateTargetList()
     allBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     allBtn.Font = Enum.Font.Gotham
     allBtn.TextSize = 12
+    allBtn.ZIndex = 20
     allBtn.Parent = targetListFrame
     local allCorner = Instance.new("UICorner")
     allCorner.CornerRadius = UDim.new(0, 4)
@@ -1176,6 +1153,7 @@ local function updateTargetList()
             plrBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             plrBtn.Font = Enum.Font.Gotham
             plrBtn.TextSize = 12
+            plrBtn.ZIndex = 20
             plrBtn.Parent = targetListFrame
             local plrCorner = Instance.new("UICorner")
             plrCorner.CornerRadius = UDim.new(0, 4)
@@ -1223,11 +1201,13 @@ fovLabel.TextXAlignment = Enum.TextXAlignment.Left
 fovLabel.Font = Enum.Font.Gotham
 fovLabel.TextSize = 12
 fovLabel.Parent = visualsPage
+fovLabel.ZIndex = 2
 
 local fovSliderRow = Instance.new("Frame")
 fovSliderRow.Size = UDim2.new(1, -16, 0, 28)
 fovSliderRow.BackgroundTransparency = 1
 fovSliderRow.Parent = visualsPage
+fovSliderRow.ZIndex = 2
 
 local fovBox = Instance.new("TextBox")
 fovBox.Size = UDim2.new(0, 70, 1, 0)
@@ -1237,6 +1217,7 @@ fovBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 fovBox.Font = Enum.Font.Gotham
 fovBox.TextSize = 12
 fovBox.Parent = fovSliderRow
+fovBox.ZIndex = 2
 local fovApply = Instance.new("TextButton")
 fovApply.Size = UDim2.new(0, 50, 1, 0)
 fovApply.Position = UDim2.new(0, 74, 0, 0)
@@ -1246,6 +1227,7 @@ fovApply.TextColor3 = Color3.fromRGB(255, 255, 255)
 fovApply.Font = Enum.Font.Gotham
 fovApply.TextSize = 12
 fovApply.Parent = fovSliderRow
+fovApply.ZIndex = 10
 fovApply.MouseButton1Click:Connect(function()
     local val = tonumber(fovBox.Text)
     if val then val = math.clamp(val, 0, 99999); fovBox.Text = tostring(val); fovRadius = val; fovCircle.Radius = val end
@@ -1269,12 +1251,14 @@ hueLabel.TextXAlignment = Enum.TextXAlignment.Left
 hueLabel.Font = Enum.Font.Gotham
 hueLabel.TextSize = 12
 hueLabel.Parent = visualsPage
+hueLabel.ZIndex = 2
 
 local hueSliderFrame = Instance.new("Frame")
 hueSliderFrame.Size = UDim2.new(0, 220, 0, 28)
 hueSliderFrame.BackgroundTransparency = 1
 hueSliderFrame.Active = true
 hueSliderFrame.Parent = visualsPage
+hueSliderFrame.ZIndex = 2
 
 local hueTrack = Instance.new("Frame")
 hueTrack.Size = UDim2.new(0, 160, 0, 6)
@@ -1294,6 +1278,7 @@ hueKnob.Text = ""
 hueKnob.AutoButtonColor = false
 hueKnob.Active = true
 hueKnob.Parent = hueSliderFrame
+hueKnob.ZIndex = 10
 local knobCorner = Instance.new("UICorner")
 knobCorner.CornerRadius = UDim.new(1, 0)
 knobCorner.Parent = hueKnob
@@ -1308,6 +1293,7 @@ hueValueLabel.Font = Enum.Font.Gotham
 hueValueLabel.TextSize = 12
 hueValueLabel.TextXAlignment = Enum.TextXAlignment.Left
 hueValueLabel.Parent = hueSliderFrame
+hueValueLabel.ZIndex = 2
 
 local function HSVtoRGB(h, s, v)
     h = h % 360
@@ -1596,6 +1582,7 @@ mm2Label.TextXAlignment = Enum.TextXAlignment.Left
 mm2Label.Font = Enum.Font.GothamBold
 mm2Label.TextSize = 15
 mm2Label.Parent = mm2Page
+mm2Label.ZIndex = 2
 
 local MM2 = {
     AimbotEnabled = true,
@@ -1618,6 +1605,7 @@ mm2ESPBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 mm2ESPBtn.Font = Enum.Font.GothamBold
 mm2ESPBtn.TextSize = 13
 mm2ESPBtn.Parent = mm2Page
+mm2ESPBtn.ZIndex = 10
 local mm2ESPCorner = Instance.new("UICorner")
 mm2ESPCorner.CornerRadius = UDim.new(0, 6)
 mm2ESPCorner.Parent = mm2ESPBtn
@@ -1641,6 +1629,7 @@ mm2AimbotBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 mm2AimbotBtn.Font = Enum.Font.GothamBold
 mm2AimbotBtn.TextSize = 13
 mm2AimbotBtn.Parent = mm2Page
+mm2AimbotBtn.ZIndex = 10
 local mm2AimbotCorner = Instance.new("UICorner")
 mm2AimbotCorner.CornerRadius = UDim.new(0, 6)
 mm2AimbotCorner.Parent = mm2AimbotBtn
@@ -1660,6 +1649,7 @@ shootToggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 shootToggleBtn.Font = Enum.Font.GothamBold
 shootToggleBtn.TextSize = 13
 shootToggleBtn.Parent = mm2Page
+shootToggleBtn.ZIndex = 10
 local shootToggleCorner = Instance.new("UICorner")
 shootToggleCorner.CornerRadius = UDim.new(0, 6)
 shootToggleCorner.Parent = shootToggleBtn
@@ -1680,6 +1670,7 @@ knifeToggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 knifeToggleBtn.Font = Enum.Font.GothamBold
 knifeToggleBtn.TextSize = 13
 knifeToggleBtn.Parent = mm2Page
+knifeToggleBtn.ZIndex = 10
 local knifeToggleCorner = Instance.new("UICorner")
 knifeToggleCorner.CornerRadius = UDim.new(0, 6)
 knifeToggleCorner.Parent = knifeToggleBtn
@@ -1700,6 +1691,7 @@ autoPickupBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 autoPickupBtn.Font = Enum.Font.GothamBold
 autoPickupBtn.TextSize = 13
 autoPickupBtn.Parent = mm2Page
+autoPickupBtn.ZIndex = 10
 local autoPickupCorner = Instance.new("UICorner")
 autoPickupCorner.CornerRadius = UDim.new(0, 6)
 autoPickupCorner.Parent = autoPickupBtn
@@ -1719,6 +1711,7 @@ freezeButtonsToggle.TextColor3 = Color3.fromRGB(220, 220, 220)
 freezeButtonsToggle.Font = Enum.Font.GothamBold
 freezeButtonsToggle.TextSize = 13
 freezeButtonsToggle.Parent = mm2Page
+freezeButtonsToggle.ZIndex = 10
 local freezeButtonsCorner = Instance.new("UICorner")
 freezeButtonsCorner.CornerRadius = UDim.new(0, 6)
 freezeButtonsCorner.Parent = freezeButtonsToggle
@@ -1731,12 +1724,12 @@ end)
 
 task.spawn(function() fixScrolling(mm2Page) end)
 
--- Плавающие кнопки MM2 (гарантированно видимы)
+-- Плавающие кнопки MM2
 local floatGui = Instance.new("ScreenGui")
 floatGui.Name = "MM2_FloatButtons"
 floatGui.ResetOnSpawn = false
 floatGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-floatGui.ZIndex = 10  -- поверх всех
+floatGui.ZIndex = 10
 floatGui.Parent = playerGui
 
 local shootBtn = Instance.new("TextButton")
@@ -1748,7 +1741,7 @@ shootBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 shootBtn.Font = Enum.Font.GothamBold
 shootBtn.TextSize = 16
 shootBtn.Visible = false
-shootBtn.ZIndex = 10
+shootBtn.ZIndex = 20
 shootBtn.Parent = floatGui
 Instance.new("UICorner", shootBtn).CornerRadius = UDim.new(1, 0)
 
@@ -1761,10 +1754,11 @@ knifeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 knifeBtn.Font = Enum.Font.GothamBold
 knifeBtn.TextSize = 16
 knifeBtn.Visible = false
-knifeBtn.ZIndex = 10
+knifeBtn.ZIndex = 20
 knifeBtn.Parent = floatGui
 Instance.new("UICorner", knifeBtn).CornerRadius = UDim.new(1, 0)
 
+-- Перетаскивание плавающих кнопок (только когда не заморожены)
 local function makeDraggable(btn)
     local draggingBtn = false
     local dragStartPosBtn, btnStartPos
@@ -1800,7 +1794,7 @@ end
 makeDraggable(shootBtn)
 makeDraggable(knifeBtn)
 
--- Функции выстрела/броска с автоаимом (уже внутри)
+-- Функции выстрела/броска
 local function shootWithAim()
     if not player.Character then return end
     local gun = player.Character:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun")
@@ -1841,7 +1835,7 @@ end
 
 knifeBtn.MouseButton1Click:Connect(throwKnife)
 
--- Авто-подбор пистолета (работает напрямую)
+-- Авто-подбор пистолета
 local function autoPickupGunLoop()
     while task.wait(0.3) do
         if not MM2.AutoPickupGun then continue end
@@ -1850,7 +1844,7 @@ local function autoPickupGunLoop()
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("Tool") and obj.Name == "Gun" and obj.Parent ~= player.Character and obj.Parent ~= player.Backpack then
                 if (root.Position - obj.Position).Magnitude < 15 then
-                    obj.Parent = player.Backpack  -- мгновенно в рюкзак
+                    obj.Parent = player.Backpack
                     break
                 end
             end
@@ -2048,4 +2042,4 @@ visualsTab.MouseButton1Click:Connect(function() selectTab("Visuals") end)
 mm2Tab.MouseButton1Click:Connect(function() selectTab("MM2") end)
 selectTab("Info")
 
-print("RAHMAT Menu v7.3 + MM2 полный фикс. Кнопки видны, пистолет подбирается.")
+print("RAHMAT Menu v7.3 + MM2 — полностью исправлен. Все кнопки кликабельны, авто-подбор работает.")
