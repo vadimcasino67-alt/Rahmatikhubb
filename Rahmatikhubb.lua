@@ -1,6 +1,5 @@
 --[[
-    RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — ФИКС КНОПОК
-    Теперь все кнопки нажимаются без проблем.
+    RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — ФИНАЛЬНЫЙ ФИКС ВКЛАДОК
 --]]
 
 local Players = game:GetService("Players")
@@ -35,7 +34,6 @@ player.CharacterAdded:Connect(function()
     if noclipEnabled then enableNoClip() end
     if invisEnabled then applyInvisibility(true) end
     if flingEnabled then setupFling(character) end
-    -- восстанавливаем видимость MM2 кнопок при респавне
     if MM2.ShootButtonEnabled then shootBtn.Visible = true else shootBtn.Visible = false end
     if MM2.KnifeThrowEnabled then knifeBtn.Visible = true else knifeBtn.Visible = false end
 end)
@@ -46,7 +44,6 @@ if humanoid then
     humanoid.JumpPower = 50
 end
 
--- Сохраняемые значения
 local savedWalkSpeed = 16
 local savedJumpPower = 50
 local flySpeed = 50
@@ -54,7 +51,7 @@ local flying = false
 local bodyVelocity, bodyGyro
 
 ------------------------------------------------------------
--- GUI (RAHMAT Menu) — ИСПРАВЛЕННЫЙ
+-- GUI (RAHMAT Menu) — полностью рабочий
 ------------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RAHMAT_Menu"
@@ -68,7 +65,7 @@ mainFrame.Position = UDim2.new(0.5, -230, 0.5, -190)
 mainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 33)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = true
-mainFrame.Active = false  -- не перехватываем клики
+mainFrame.Active = false
 mainFrame.Parent = screenGui
 mainFrame.ZIndex = 1
 
@@ -83,7 +80,7 @@ mainStroke.Thickness = 1.5
 mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 mainStroke.Parent = mainFrame
 
--- Заголовок с радужным эффектом
+-- Заголовок
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 36)
 titleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
@@ -181,7 +178,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Перемещение меню (только через заголовок)
+-- Перемещение меню
 local dragging = false
 local dragStartPos, frameStartPos
 
@@ -208,15 +205,13 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Удалили resizeHandle, чтобы не мешал
-
 -- Панель вкладок
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 32)
 tabBar.Position = UDim2.new(0, 8, 0, 46)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = mainFrame
-tabBar.ZIndex = 2
+tabBar.ZIndex = 10  -- подняли
 
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -232,7 +227,7 @@ local function createTabButton(name, text)
     btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     btn.Font = Enum.Font.GothamMedium
     btn.TextSize = 13
-    btn.ZIndex = 3
+    btn.ZIndex = 20  -- высокий приоритет
     btn.Parent = tabBar
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
@@ -264,16 +259,16 @@ end
 mainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeTabs)
 resizeTabs()
 
--- Контент (не перехватывает клики)
+-- Контент (опустили ZIndex)
 local contentFrame = Instance.new("Frame")
 contentFrame.Size = UDim2.new(1, -16, 1, -86)
 contentFrame.Position = UDim2.new(0, 8, 0, 82)
 contentFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 29)
-contentFrame.BackgroundTransparency = 1  -- прозрачный, чтобы не мешать
+contentFrame.BackgroundTransparency = 1
 contentFrame.BorderSizePixel = 0
 contentFrame.Parent = mainFrame
 contentFrame.Active = false
-contentFrame.ZIndex = 2
+contentFrame.ZIndex = 1  -- ниже вкладок
 
 local contentCorner = Instance.new("UICorner")
 contentCorner.CornerRadius = UDim.new(0, 12)
@@ -294,14 +289,12 @@ local function createScrollPage()
     sf.ClipsDescendants = true
     sf.Parent = contentFrame
     sf.Visible = false
-    sf.ZIndex = 2  -- не выше кнопок
-
+    sf.ZIndex = 1
     local uiListLayout = Instance.new("UIListLayout")
     uiListLayout.Padding = UDim.new(0, 5)
     uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     uiListLayout.Parent = sf
-
     return sf
 end
 
@@ -337,7 +330,7 @@ infoLabel.TextYAlignment = Enum.TextYAlignment.Top
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 13
 infoLabel.Parent = infoPage
-infoLabel.ZIndex = 2
+infoLabel.ZIndex = 1
 task.spawn(function() fixScrolling(infoPage) end)
 
 -- ================== ВКЛАДКА НАСТРОЙКИ ==================
@@ -354,7 +347,7 @@ settingsLabel.TextXAlignment = Enum.TextXAlignment.Left
 settingsLabel.Font = Enum.Font.GothamBold
 settingsLabel.TextSize = 15
 settingsLabel.Parent = settingsPage
-settingsLabel.ZIndex = 2
+settingsLabel.ZIndex = 1
 
 local resetButton = Instance.new("TextButton")
 resetButton.Size = UDim2.new(0, 180, 0, 30)
@@ -384,7 +377,6 @@ local function resetAllSettings()
     currentHue = 0; applyHue(0); updateHueKnobPosition()
     fovRadius = 100; fovCircle.Radius = 100; fovBox.Text = "100"
     refreshESP()
-    -- Сброс MM2
     MM2.AimbotEnabled = false; mm2AimbotBtn.Text = "Аимбот: Выкл"; mm2AimbotBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
     MM2.ESPEnabled = false; mm2ESPBtn.Text = "ESP: Выкл"; mm2ESPBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
     if MM2.ShootButtonEnabled then
@@ -423,13 +415,13 @@ animsLabel.TextXAlignment = Enum.TextXAlignment.Left
 animsLabel.Font = Enum.Font.GothamBold
 animsLabel.TextSize = 15
 animsLabel.Parent = animsPage
-animsLabel.ZIndex = 2
+animsLabel.ZIndex = 1
 
 local animContainer = Instance.new("Frame")
 animContainer.Size = UDim2.new(1, -16, 0, 160)
 animContainer.BackgroundTransparency = 1
 animContainer.Parent = animsPage
-animContainer.ZIndex = 2
+animContainer.ZIndex = 1
 
 local animLayout = Instance.new("UIListLayout")
 animLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -524,7 +516,7 @@ local idFrame = Instance.new("Frame")
 idFrame.Size = UDim2.new(1, -16, 0, 30)
 idFrame.BackgroundTransparency = 1
 idFrame.Parent = animsPage
-idFrame.ZIndex = 2
+idFrame.ZIndex = 1
 
 local idLabel = Instance.new("TextLabel")
 idLabel.Size = UDim2.new(0, 80, 1, 0)
@@ -535,7 +527,7 @@ idLabel.TextXAlignment = Enum.TextXAlignment.Left
 idLabel.Font = Enum.Font.Gotham
 idLabel.TextSize = 12
 idLabel.Parent = idFrame
-idLabel.ZIndex = 2
+idLabel.ZIndex = 1
 
 local idBox = Instance.new("TextBox")
 idBox.Size = UDim2.new(0, 120, 1, 0)
@@ -548,7 +540,7 @@ idBox.TextSize = 12
 idBox.PlaceholderText = "ID"
 idBox.ClearTextOnFocus = false
 idBox.Parent = idFrame
-idBox.ZIndex = 2
+idBox.ZIndex = 1
 local idCorner = Instance.new("UICorner")
 idCorner.CornerRadius = UDim.new(0, 4)
 idCorner.Parent = idBox
@@ -592,7 +584,7 @@ playerLabel.TextXAlignment = Enum.TextXAlignment.Left
 playerLabel.Font = Enum.Font.GothamBold
 playerLabel.TextSize = 15
 playerLabel.Parent = playerPage
-playerLabel.ZIndex = 2
+playerLabel.ZIndex = 1
 
 local playerInfo = Instance.new("TextLabel")
 playerInfo.Size = UDim2.new(1, -16, 0, 40)
@@ -605,7 +597,7 @@ playerInfo.TextYAlignment = Enum.TextYAlignment.Top
 playerInfo.Font = Enum.Font.Gotham
 playerInfo.TextSize = 12
 playerInfo.Parent = playerPage
-playerInfo.ZIndex = 2
+playerInfo.ZIndex = 1
 
 -- Fly
 local flyBtn = Instance.new("TextButton")
@@ -713,7 +705,7 @@ invisBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Телепорт к игроку
+-- Телепорт
 local teleportTarget = nil
 local teleportLabel = Instance.new("TextLabel")
 teleportLabel.Size = UDim2.new(1, -16, 0, 18)
@@ -724,7 +716,7 @@ teleportLabel.TextXAlignment = Enum.TextXAlignment.Left
 teleportLabel.Font = Enum.Font.Gotham
 teleportLabel.TextSize = 12
 teleportLabel.Parent = playerPage
-teleportLabel.ZIndex = 2
+teleportLabel.ZIndex = 1
 
 local teleportDropdownBtn = Instance.new("TextButton")
 teleportDropdownBtn.Size = UDim2.new(0, 160, 0, 28)
@@ -882,7 +874,7 @@ local speedPanel = Instance.new("Frame")
 speedPanel.Size = UDim2.new(1, -16, 0, 150)
 speedPanel.BackgroundTransparency = 1
 speedPanel.Parent = playerPage
-speedPanel.ZIndex = 2
+speedPanel.ZIndex = 1
 local speedLayout = Instance.new("UIListLayout")
 speedLayout.FillDirection = Enum.FillDirection.Vertical
 speedLayout.Padding = UDim.new(0, 6)
@@ -894,8 +886,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     row.Size = UDim2.new(1, 0, 0, 28)
     row.BackgroundTransparency = 1
     row.Parent = parent
-    row.ZIndex = 2
-
+    row.ZIndex = 1
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(0, 120, 1, 0)
     lbl.BackgroundTransparency = 1
@@ -905,8 +896,7 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     lbl.Font = Enum.Font.Gotham
     lbl.TextSize = 12
     lbl.Parent = row
-    lbl.ZIndex = 2
-
+    lbl.ZIndex = 1
     local box = Instance.new("TextBox")
     box.Size = UDim2.new(0, 70, 1, 0)
     box.Position = UDim2.new(0, 124, 0, 0)
@@ -918,11 +908,10 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     box.PlaceholderText = "0"
     box.ClearTextOnFocus = false
     box.Parent = row
-    box.ZIndex = 2
+    box.ZIndex = 1
     local boxCorner = Instance.new("UICorner")
     boxCorner.CornerRadius = UDim.new(0, 4)
     boxCorner.Parent = box
-
     local applyBtn = Instance.new("TextButton")
     applyBtn.Size = UDim2.new(0, 55, 1, 0)
     applyBtn.Position = UDim2.new(1, -60, 0, 0)
@@ -936,7 +925,6 @@ local function createSlider(parent, labelText, defaultVal, minVal, maxVal, callb
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 4)
     btnCorner.Parent = applyBtn
-
     applyBtn.MouseButton1Click:Connect(function()
         local val = tonumber(box.Text)
         if val then
@@ -1031,7 +1019,7 @@ visualsLabel.TextXAlignment = Enum.TextXAlignment.Left
 visualsLabel.Font = Enum.Font.GothamBold
 visualsLabel.TextSize = 15
 visualsLabel.Parent = visualsPage
-visualsLabel.ZIndex = 2
+visualsLabel.ZIndex = 1
 
 -- Ники
 local namesToggle = Instance.new("TextButton")
@@ -1076,7 +1064,7 @@ local aimbotCorner = Instance.new("UICorner")
 aimbotCorner.CornerRadius = UDim.new(0, 6)
 aimbotCorner.Parent = aimbotBtn
 
--- Выбор цели аимбота
+-- Выбор цели
 local aimTargetPlayer = nil
 local aimTargetLabel = Instance.new("TextLabel")
 aimTargetLabel.Size = UDim2.new(1, -16, 0, 18)
@@ -1087,7 +1075,7 @@ aimTargetLabel.TextXAlignment = Enum.TextXAlignment.Left
 aimTargetLabel.Font = Enum.Font.Gotham
 aimTargetLabel.TextSize = 12
 aimTargetLabel.Parent = visualsPage
-aimTargetLabel.ZIndex = 2
+aimTargetLabel.ZIndex = 1
 
 local targetDropdownBtn = Instance.new("TextButton")
 targetDropdownBtn.Size = UDim2.new(0, 160, 0, 28)
@@ -1182,7 +1170,7 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 updateTargetList()
 
--- FOV кольцо
+-- FOV
 local fovCircle = Drawing.new("Circle")
 fovCircle.Color = Color3.fromRGB(255, 255, 255)
 fovCircle.Thickness = 1
@@ -1201,13 +1189,13 @@ fovLabel.TextXAlignment = Enum.TextXAlignment.Left
 fovLabel.Font = Enum.Font.Gotham
 fovLabel.TextSize = 12
 fovLabel.Parent = visualsPage
-fovLabel.ZIndex = 2
+fovLabel.ZIndex = 1
 
 local fovSliderRow = Instance.new("Frame")
 fovSliderRow.Size = UDim2.new(1, -16, 0, 28)
 fovSliderRow.BackgroundTransparency = 1
 fovSliderRow.Parent = visualsPage
-fovSliderRow.ZIndex = 2
+fovSliderRow.ZIndex = 1
 
 local fovBox = Instance.new("TextBox")
 fovBox.Size = UDim2.new(0, 70, 1, 0)
@@ -1217,7 +1205,7 @@ fovBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 fovBox.Font = Enum.Font.Gotham
 fovBox.TextSize = 12
 fovBox.Parent = fovSliderRow
-fovBox.ZIndex = 2
+fovBox.ZIndex = 1
 local fovApply = Instance.new("TextButton")
 fovApply.Size = UDim2.new(0, 50, 1, 0)
 fovApply.Position = UDim2.new(0, 74, 0, 0)
@@ -1233,7 +1221,6 @@ fovApply.MouseButton1Click:Connect(function()
     if val then val = math.clamp(val, 0, 99999); fovBox.Text = tostring(val); fovRadius = val; fovCircle.Radius = val end
 end)
 
--- Маркер цели
 local targetMarker = Drawing.new("Circle")
 targetMarker.Color = Color3.fromRGB(255, 0, 0)
 targetMarker.Thickness = 2
@@ -1241,7 +1228,7 @@ targetMarker.Transparency = 0.5
 targetMarker.Visible = false
 targetMarker.Radius = 6
 
--- HUE ползунок (цвет меню)
+-- HUE
 local hueLabel = Instance.new("TextLabel")
 hueLabel.Size = UDim2.new(1, -16, 0, 18)
 hueLabel.BackgroundTransparency = 1
@@ -1251,14 +1238,14 @@ hueLabel.TextXAlignment = Enum.TextXAlignment.Left
 hueLabel.Font = Enum.Font.Gotham
 hueLabel.TextSize = 12
 hueLabel.Parent = visualsPage
-hueLabel.ZIndex = 2
+hueLabel.ZIndex = 1
 
 local hueSliderFrame = Instance.new("Frame")
 hueSliderFrame.Size = UDim2.new(0, 220, 0, 28)
 hueSliderFrame.BackgroundTransparency = 1
 hueSliderFrame.Active = true
 hueSliderFrame.Parent = visualsPage
-hueSliderFrame.ZIndex = 2
+hueSliderFrame.ZIndex = 1
 
 local hueTrack = Instance.new("Frame")
 hueTrack.Size = UDim2.new(0, 160, 0, 6)
@@ -1293,7 +1280,7 @@ hueValueLabel.Font = Enum.Font.Gotham
 hueValueLabel.TextSize = 12
 hueValueLabel.TextXAlignment = Enum.TextXAlignment.Left
 hueValueLabel.Parent = hueSliderFrame
-hueValueLabel.ZIndex = 2
+hueValueLabel.ZIndex = 1
 
 local function HSVtoRGB(h, s, v)
     h = h % 360
@@ -1369,7 +1356,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 updateHueKnobPosition()
 
--- ESP / АИМБОТ
+-- ESP / AIMBOT
 local espEnabledNames = false
 local espEnabledBoxes = false
 local espObjects = {}
@@ -1582,7 +1569,7 @@ mm2Label.TextXAlignment = Enum.TextXAlignment.Left
 mm2Label.Font = Enum.Font.GothamBold
 mm2Label.TextSize = 15
 mm2Label.Parent = mm2Page
-mm2Label.ZIndex = 2
+mm2Label.ZIndex = 1
 
 local MM2 = {
     AimbotEnabled = true,
@@ -1640,7 +1627,7 @@ mm2AimbotBtn.MouseButton1Click:Connect(function()
     mm2AimbotBtn.BackgroundColor3 = MM2.AimbotEnabled and Color3.fromRGB(123, 97, 255) or Color3.fromRGB(50, 50, 56)
 end)
 
--- Кнопка Выстрел (Шериф)
+-- Кнопка Выстрел
 local shootToggleBtn = Instance.new("TextButton")
 shootToggleBtn.Size = UDim2.new(0, 160, 0, 30)
 shootToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1661,7 +1648,7 @@ shootToggleBtn.MouseButton1Click:Connect(function()
     shootBtn.Visible = MM2.ShootButtonEnabled
 end)
 
--- Кнопка Бросок ножа (Убийца)
+-- Кнопка Бросок ножа
 local knifeToggleBtn = Instance.new("TextButton")
 knifeToggleBtn.Size = UDim2.new(0, 160, 0, 30)
 knifeToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1682,7 +1669,7 @@ knifeToggleBtn.MouseButton1Click:Connect(function()
     knifeBtn.Visible = MM2.KnifeThrowEnabled
 end)
 
--- Авто-подбор пистолета
+-- Авто-подбор
 local autoPickupBtn = Instance.new("TextButton")
 autoPickupBtn.Size = UDim2.new(0, 160, 0, 30)
 autoPickupBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1702,7 +1689,7 @@ autoPickupBtn.MouseButton1Click:Connect(function()
     autoPickupBtn.BackgroundColor3 = MM2.AutoPickupGun and Color3.fromRGB(123, 97, 255) or Color3.fromRGB(50, 50, 56)
 end)
 
--- Заморозка кнопок
+-- Заморозка
 local freezeButtonsToggle = Instance.new("TextButton")
 freezeButtonsToggle.Size = UDim2.new(0, 160, 0, 30)
 freezeButtonsToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1758,7 +1745,6 @@ knifeBtn.ZIndex = 20
 knifeBtn.Parent = floatGui
 Instance.new("UICorner", knifeBtn).CornerRadius = UDim.new(1, 0)
 
--- Перетаскивание плавающих кнопок (только когда не заморожены)
 local function makeDraggable(btn)
     local draggingBtn = false
     local dragStartPosBtn, btnStartPos
@@ -1794,7 +1780,6 @@ end
 makeDraggable(shootBtn)
 makeDraggable(knifeBtn)
 
--- Функции выстрела/броска
 local function shootWithAim()
     if not player.Character then return end
     local gun = player.Character:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun")
@@ -1853,7 +1838,7 @@ local function autoPickupGunLoop()
 end
 task.spawn(autoPickupGunLoop)
 
--- Общие функции MM2 (ESP, AimBot)
+-- MM2 ESP/AIM
 local mm2EspStorage = {}
 
 local function getPlayerRoleMM2(plr)
@@ -2034,12 +2019,30 @@ local function selectTab(tabName)
     end
 end
 
-infoTab.MouseButton1Click:Connect(function() selectTab("Info") end)
-settingsTab.MouseButton1Click:Connect(function() selectTab("Settings") end)
-animsTab.MouseButton1Click:Connect(function() selectTab("Animations") end)
-playerTab.MouseButton1Click:Connect(function() selectTab("Player") end)
-visualsTab.MouseButton1Click:Connect(function() selectTab("Visuals") end)
-mm2Tab.MouseButton1Click:Connect(function() selectTab("MM2") end)
-selectTab("Info")
+-- ====== ФИНАЛЬНЫЙ ФИКС ВКЛАДОК (принудительное назначение) ======
+local function fixTabs()
+    -- Поднимаем ZIndex до небес
+    infoTab.ZIndex = 30
+    settingsTab.ZIndex = 30
+    animsTab.ZIndex = 30
+    playerTab.ZIndex = 30
+    visualsTab.ZIndex = 30
+    mm2Tab.ZIndex = 30
+    tabBar.ZIndex = 15
+    contentFrame.ZIndex = 1
+    
+    -- Переподключаем события
+    infoTab.MouseButton1Click:Connect(function() selectTab("Info") end)
+    settingsTab.MouseButton1Click:Connect(function() selectTab("Settings") end)
+    animsTab.MouseButton1Click:Connect(function() selectTab("Animations") end)
+    playerTab.MouseButton1Click:Connect(function() selectTab("Player") end)
+    visualsTab.MouseButton1Click:Connect(function() selectTab("Visuals") end)
+    mm2Tab.MouseButton1Click:Connect(function() selectTab("MM2") end)
+    
+    -- Выбираем активную вкладку по умолчанию
+    selectTab("Info")
+end
 
-print("RAHMAT Menu v7.3 + MM2 — полностью исправлен. Все кнопки кликабельны, авто-подбор работает.")
+task.spawn(fixTabs)  -- запускаем после создания всего GUI
+
+print("RAHMAT Menu v7.3 + MM2 — ПОЛНЫЙ ФИКС! Вкладки работают, кнопки кликабельны.")
