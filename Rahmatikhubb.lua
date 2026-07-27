@@ -1,5 +1,5 @@
 --[[
-    RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — ПОЛНЫЙ РАБОЧИЙ ФИКС
+    RAHMAT Menu v7.3 + MM2 Tab (Мудрый Живчик) — СУПЕРСТАБИЛЬНЫЙ ФИКС
 --]]
 
 local Players = game:GetService("Players")
@@ -10,6 +10,26 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+
+-- Проверка Drawing API
+local DrawingAvailable = pcall(function() return Drawing end) and Drawing ~= nil
+local fovCircle, targetMarker
+if DrawingAvailable then
+    fovCircle = Drawing.new("Circle")
+    fovCircle.Color = Color3.fromRGB(255, 255, 255)
+    fovCircle.Thickness = 1
+    fovCircle.Transparency = 0.7
+    fovCircle.Visible = false
+    fovCircle.Radius = 100
+    fovCircle.Filled = false
+
+    targetMarker = Drawing.new("Circle")
+    targetMarker.Color = Color3.fromRGB(255, 0, 0)
+    targetMarker.Thickness = 2
+    targetMarker.Transparency = 0.5
+    targetMarker.Visible = false
+    targetMarker.Radius = 6
+end
 
 -- Кэширование персонажа
 local character, humanoid, rootPart
@@ -45,23 +65,7 @@ local fovRadius = 100
 local currentHue = 0
 local teleportTarget = nil
 
--- Drawing объекты
-local fovCircle = Drawing.new("Circle")
-fovCircle.Color = Color3.fromRGB(255, 255, 255)
-fovCircle.Thickness = 1
-fovCircle.Transparency = 0.7
-fovCircle.Visible = false
-fovCircle.Radius = 100
-fovCircle.Filled = false
-
-local targetMarker = Drawing.new("Circle")
-targetMarker.Color = Color3.fromRGB(255, 0, 0)
-targetMarker.Thickness = 2
-targetMarker.Transparency = 0.5
-targetMarker.Visible = false
-targetMarker.Radius = 6
-
--- MM2 переменные (сразу инициализируем)
+-- MM2 переменные
 local MM2 = {
     AimbotEnabled = true,
     ESPEnabled = true,
@@ -75,7 +79,7 @@ local MM2 = {
 }
 local mm2EspStorage = {}
 
--- ФУНКЦИИ ОБЩИЕ (до использования)
+-- ФУНКЦИИ ОБЩИЕ
 local function HSVtoRGB(h, s, v)
     h = h % 360
     local c = v * s
@@ -91,7 +95,10 @@ local function HSVtoRGB(h, s, v)
     return Color3.fromRGB((r + m) * 255, (g + m) * 255, (b + m) * 255)
 end
 
+local mainFrame, titleBar, contentFrame  -- будут созданы
+
 local function applyHue(hue)
+    if not mainFrame then return end
     local mainColor = HSVtoRGB(hue, 0.2, 0.25)
     local titleColor = HSVtoRGB(hue, 0.3, 0.2)
     local contentColor = HSVtoRGB(hue, 0.15, 0.3)
@@ -212,7 +219,7 @@ local function createESPForPlayer(target)
     if target == player then return end
     if espObjects[target] then clearESP(target) end
     local data = {nameTag = nil, lines = {}}
-    if espEnabledNames then
+    if espEnabledNames and DrawingAvailable then
         local nameTag = Drawing.new("Text")
         nameTag.Size = 14
         nameTag.Center = true
@@ -221,7 +228,7 @@ local function createESPForPlayer(target)
         nameTag.Visible = false
         data.nameTag = nameTag
     end
-    if espEnabledBoxes then
+    if espEnabledBoxes and DrawingAvailable then
         for i = 1, 12 do
             local line = Drawing.new("Line")
             line.Color = Color3.fromRGB(255, 0, 0)
@@ -234,6 +241,7 @@ local function createESPForPlayer(target)
 end
 
 local function updateESP()
+    if not DrawingAvailable then return end
     local camera = workspace.CurrentCamera
     if not camera then return end
     for target, data in pairs(espObjects) do
@@ -325,27 +333,38 @@ local function getAimTarget()
 end
 
 local function updateAimbot()
-    if not aimbotEnabled then targetMarker.Visible = false; fovCircle.Visible = false; return end
+    if not DrawingAvailable then return end
+    if not aimbotEnabled then 
+        if fovCircle then fovCircle.Visible = false end
+        if targetMarker then targetMarker.Visible = false end
+        return 
+    end
     local camera = workspace.CurrentCamera
     if not camera then return end
     local screenCenter = camera.ViewportSize / 2
-    fovCircle.Position = screenCenter
-    fovCircle.Visible = true
-    fovCircle.Radius = fovRadius
+    if fovCircle then
+        fovCircle.Position = screenCenter
+        fovCircle.Visible = true
+        fovCircle.Radius = fovRadius
+    end
     local targetHead = getAimTarget()
     if targetHead then
         camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
-        local screenPos, onScreen = camera:WorldToViewportPoint(targetHead.Position)
-        if onScreen and screenPos.Z > 0 then
-            targetMarker.Position = Vector2.new(screenPos.X, screenPos.Y)
-            targetMarker.Visible = true
-        else targetMarker.Visible = false end
-    else targetMarker.Visible = false end
+        if targetMarker then
+            local screenPos, onScreen = camera:WorldToViewportPoint(targetHead.Position)
+            if onScreen and screenPos.Z > 0 then
+                targetMarker.Position = Vector2.new(screenPos.X, screenPos.Y)
+                targetMarker.Visible = true
+            else targetMarker.Visible = false end
+        end
+    else
+        if targetMarker then targetMarker.Visible = false end
+    end
 end
 
 function refreshESP()
     clearAllESP()
-    if espEnabledNames or espEnabledBoxes then
+    if (espEnabledNames or espEnabledBoxes) and DrawingAvailable then
         for _, target in ipairs(Players:GetPlayers()) do
             if target ~= player then createESPForPlayer(target) end
         end
@@ -482,14 +501,14 @@ local function autoAttackMM2(target)
     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
 end
 
--- Создание GUI (теперь можно использовать mainFrame и т.д. в applyHue)
+-- ================== СОЗДАНИЕ GUI ==================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RAHMAT_Menu"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
-local mainFrame = Instance.new("Frame")
+mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 460, 0, 380)
 mainFrame.Position = UDim2.new(0.5, -230, 0.5, -190)
 mainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 33)
@@ -511,7 +530,7 @@ mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 mainStroke.Parent = mainFrame
 
 -- Заголовок
-local titleBar = Instance.new("Frame")
+titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 36)
 titleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
 titleBar.BorderSizePixel = 0
@@ -676,7 +695,7 @@ mainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeTabs)
 resizeTabs()
 
 -- Контент
-local contentFrame = Instance.new("Frame")
+contentFrame = Instance.new("Frame")
 contentFrame.Size = UDim2.new(1, -16, 1, -86)
 contentFrame.Position = UDim2.new(0, 8, 0, 82)
 contentFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 29)
@@ -791,7 +810,7 @@ local function resetAllSettings()
     if humanoid then humanoid.WalkSpeed = 16; humanoid.JumpPower = 50 end
     teleportTarget = nil; teleportDropdownBtn.Text = "Выбрать"
     currentHue = 0; applyHue(0); updateHueKnobPosition()
-    fovRadius = 100; fovCircle.Radius = 100; fovBox.Text = "100"
+    fovRadius = 100; if fovCircle then fovCircle.Radius = 100 end; fovBox.Text = "100"
     refreshESP()
     MM2.AimbotEnabled = false; mm2AimbotBtn.Text = "Аимбот: Выкл"; mm2AimbotBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
     MM2.ESPEnabled = false; mm2ESPBtn.Text = "ESP: Выкл"; mm2ESPBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
@@ -1547,7 +1566,7 @@ fovApply.Parent = fovSliderRow
 fovApply.ZIndex = 10
 fovApply.MouseButton1Click:Connect(function()
     local val = tonumber(fovBox.Text)
-    if val then val = math.clamp(val, 0, 99999); fovBox.Text = tostring(val); fovRadius = val; fovCircle.Radius = val end
+    if val then val = math.clamp(val, 0, 99999); fovBox.Text = tostring(val); fovRadius = val; if fovCircle then fovCircle.Radius = val end end
 end)
 
 -- HUE
@@ -1720,7 +1739,7 @@ mm2AimbotBtn.MouseButton1Click:Connect(function()
     mm2AimbotBtn.BackgroundColor3 = MM2.AimbotEnabled and Color3.fromRGB(123, 97, 255) or Color3.fromRGB(50, 50, 56)
 end)
 
--- Плавающие кнопки MM2 (теперь создаются здесь, но используются ниже и в reset)
+-- Плавающие кнопки MM2
 local floatGui = Instance.new("ScreenGui")
 floatGui.Name = "MM2_FloatButtons"
 floatGui.ResetOnSpawn = false
@@ -1992,8 +2011,8 @@ local function fixTabs()
 end
 task.spawn(fixTabs)
 
--- ================== СОБЫТИЯ ПЕРСОНАЖА ==================
-player.CharacterAdded:Connect(function()
+-- ================== ЕДИНОЕ СОБЫТИЕ ПЕРСОНАЖА ==================
+local function onCharacterAdded(newChar)
     updateCharacter()
     task.wait(0.5)
     if humanoid then
@@ -2003,24 +2022,25 @@ player.CharacterAdded:Connect(function()
     if noclipEnabled then enableNoClip() end
     if invisEnabled then applyInvisibility(true) end
     if flingEnabled then setupFling(character) end
+    if flying then 
+        stopFly() 
+        flyBtn.Text = "Fly: Выкл"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56)
+    end
     if shootBtn then shootBtn.Visible = MM2.ShootButtonEnabled end
     if knifeBtn then knifeBtn.Visible = MM2.KnifeThrowEnabled end
     if MM2.ESPEnabled then
         for _, data in pairs(mm2EspStorage) do data.Gui:Destroy() end
         mm2EspStorage = {}
     end
-end)
-
-player.CharacterAdded:Connect(function()
-    if flying then stopFly(); flyBtn.Text = "Fly: Выкл"; flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 56) end
-    if flingEnabled then setupFling(character) end
     refreshESP()
-    if noclipEnabled then enableNoClip() end
-    if invisEnabled then applyInvisibility(true) end
-end)
+end
 
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Игроки
 Players.PlayerAdded:Connect(function(target)
-    if espEnabledNames or espEnabledBoxes then createESPForPlayer(target) end
+    if (espEnabledNames or espEnabledBoxes) and DrawingAvailable then createESPForPlayer(target) end
 end)
 Players.PlayerRemoving:Connect(function(target) 
     clearESP(target) 
@@ -2036,6 +2056,6 @@ if humanoid then
     humanoid.WalkSpeed = 16
     humanoid.JumpPower = 50
 end
-if espEnabledNames or espEnabledBoxes then refreshESP() end
+if (espEnabledNames or espEnabledBoxes) and DrawingAvailable then refreshESP() end
 
-print("RAHMAT Menu v7.3 + MM2 — ПОЛНЫЙ РАБОЧИЙ ФИКС! Меню живо.")
+print("RAHMAT Menu v7.3 + MM2 — МЕНЮ ЖИВОЕ И РАБОТАЕТ!")
