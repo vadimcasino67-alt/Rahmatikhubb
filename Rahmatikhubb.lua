@@ -1,8 +1,5 @@
 --[[
-    RAHMAT Menu v7.3 — Полный ремастер: радужный заголовок, фиксы невидимки, ESP, аимбота, hue-ползунка, флинга
-    + MM2 Tab (Мудрый Живчик): ESP, аимбот, кнопка выстрела (шериф), кнопка броска ножа (убийца), авто-подбор пистолета
-    Восстановлены все функции: Fly, Noclip, Invis, Fling, Animations, Visuals, HUE-ползунок
-    Исправлены плавающие кнопки — теперь видны при включении
+    RAHMAT Menu v7.3.1 — Мудрый Живчик: фикс флинга (цель улетает, а не ты), автоподбор пистолета (прямой захват)
 --]]
 
 local Players = game:GetService("Players")
@@ -854,7 +851,7 @@ teleportBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Fling
+-- ==================== ИСПРАВЛЕННЫЙ FLING ====================
 local flingEnabled = false
 local flingConnections = {}
 local function setupFling(char)
@@ -869,12 +866,10 @@ local function setupFling(char)
                 if hitChar:IsA("Model") and Players:GetPlayerFromCharacter(hitChar) and hitChar ~= char then
                     local hitRoot = hitChar:FindFirstChild("HumanoidRootPart")
                     if hitRoot then
+                        -- Направление от нашей части к врагу
                         local flingDir = (hitRoot.Position - part.Position).Unit + Vector3.new(0, 1, 0)
-                        local bv = Instance.new("BodyVelocity")
-                        bv.Velocity = flingDir * 200 + Vector3.new(0, 100, 0)
-                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        bv.Parent = hitRoot
-                        Debris:AddItem(bv, 0.5)
+                        -- Прямое присвоение скорости – работает всегда
+                        hitRoot.Velocity = flingDir * 250 + Vector3.new(0, 150, 0)
                     end
                 end
             end)
@@ -1101,9 +1096,6 @@ aimbotBtn.Parent = visualsPage
 local aimbotCorner = Instance.new("UICorner")
 aimbotCorner.CornerRadius = UDim.new(0, 6)
 aimbotCorner.Parent = aimbotBtn
-
--- ... (остальные элементы визуалов: выбор цели, FOV, HUE ползунок) ...
--- Восстановим их ниже полностью.
 
 -- Выбор цели аимбота
 local aimTargetPlayer = nil
@@ -1734,7 +1726,7 @@ end)
 
 task.spawn(function() fixScrolling(mm2Page) end)
 
--- Плавающие кнопки MM2 (ИСПРАВЛЕНЫ - создаются явно в отдельном ScreenGui)
+-- Плавающие кнопки MM2 (в отдельном ScreenGui, всегда видны при включении)
 local floatGui = Instance.new("ScreenGui")
 floatGui.Name = "MM2_FloatButtons"
 floatGui.ResetOnSpawn = false
@@ -1771,7 +1763,7 @@ local knifeCorner = Instance.new("UICorner")
 knifeCorner.CornerRadius = UDim.new(1, 0)
 knifeCorner.Parent = knifeBtn
 
--- Перетаскивание кнопок
+-- Перетаскивание кнопок (работает, если не заморожены)
 local function makeDraggable(btn)
     local draggingBtn = false
     local dragStartPosBtn, btnStartPos
@@ -1807,7 +1799,7 @@ end
 makeDraggable(shootBtn)
 makeDraggable(knifeBtn)
 
--- Функции выстрела и броска
+-- Функции выстрела и броска с автоаимом
 local function shootWithAim()
     if not player.Character then return end
     local gun = player.Character:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun")
@@ -1848,7 +1840,7 @@ end
 
 knifeBtn.MouseButton1Click:Connect(throwKnife)
 
--- Авто-подбор пистолета
+-- ================== УЛУЧШЕННЫЙ АВТОПОДБОР ПИСТОЛЕТА (ПРЯМОЙ ЗАХВАТ) ==================
 local function autoPickupGunLoop()
     while task.wait(0.5) do
         if not MM2.AutoPickupGun then continue end
@@ -1856,13 +1848,25 @@ local function autoPickupGunLoop()
         local root = player.Character.HumanoidRootPart
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("Tool") and obj.Name == "Gun" and obj.Parent ~= player.Character and obj.Parent ~= player.Backpack then
+                -- Проверяем, не принадлежит ли он другому игроку
+                local owner = obj.Parent
+                if owner:IsA("Model") and Players:GetPlayerFromCharacter(owner) then continue end
                 local distance = (root.Position - obj.Position).Magnitude
                 if distance < 15 then
-                    local oldCFrame = root.CFrame
-                    root.CFrame = CFrame.new(obj.Position)
-                    task.wait(0.1)
-                    root.CFrame = oldCFrame
-                    break
+                    -- Попытка прямого переноса в инвентарь
+                    pcall(function()
+                        obj.Parent = player.Backpack
+                    end)
+                    if obj.Parent == player.Backpack then
+                        -- Успешно, выходим из цикла
+                        break
+                    else
+                        -- Запасной вариант: телепорт к предмету
+                        local oldCFrame = root.CFrame
+                        root.CFrame = CFrame.new(obj.Position)
+                        task.wait(0.15)
+                        root.CFrame = oldCFrame
+                    end
                 end
             end
         end
@@ -2060,4 +2064,4 @@ visualsTab.MouseButton1Click:Connect(function() selectTab("Visuals") end)
 mm2Tab.MouseButton1Click:Connect(function() selectTab("MM2") end)
 selectTab("Info")
 
-print("RAHMAT Menu v7.3 + MM2 полный комплект активирован. Мудрый Живчик правит.")
+print("RAHMAT Menu v7.3.1 + MM2 полный комплект активирован. Мудрый Живчик правит.")
